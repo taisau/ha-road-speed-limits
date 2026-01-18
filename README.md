@@ -89,8 +89,8 @@ here_api_key: "your_here_api_key_here"
      - **TomTom** (requires API key in secrets.yaml)
      - **HERE Maps** (requires API key in secrets.yaml)
    - **Unit**: Choose your preferred unit:
-     - **Kilometers per hour (km/h)** (default)
-     - **Miles per hour (mph)**
+     - **Kilometers per hour (km/h)**
+     - **Miles per hour (mph)** (default)
 6. Click **Submit**
 
 The integration will create a sensor entity named `sensor.road_speed_limit` that displays the current speed limit in your selected unit. Speed limits are automatically converted from the data source to your preferred unit.

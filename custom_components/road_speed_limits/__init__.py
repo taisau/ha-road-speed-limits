@@ -33,7 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Get data source (default to OSM for backward compatibility)
     data_source = get_config_value(entry, CONF_DATA_SOURCE, DEFAULT_DATA_SOURCE)
 
-    # Get unit preference (default to km/h)
+    # Get unit preference (default to mph)
     unit_preference = get_config_value(entry, CONF_UNIT, DEFAULT_UNIT)
 
     # Get initial coordinates from entities

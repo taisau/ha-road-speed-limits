@@ -13,9 +13,9 @@ from .const import (
     DATA_SOURCE_HERE,
     DATA_SOURCE_OSM,
     DATA_SOURCE_TOMTOM,
+    DEFAULT_UNIT,
     DOMAIN,
     UPDATE_INTERVAL,
-    UNIT_KMH,
 )
 from .helpers import convert_speed
 from .providers import (
@@ -37,7 +37,7 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         latitude: float,
         longitude: float,
         data_source: str = DATA_SOURCE_OSM,
-        unit_preference: str = UNIT_KMH,
+        unit_preference: str = DEFAULT_UNIT,
         tomtom_api_key: str | None = None,
         here_api_key: str | None = None,
     ) -> None:
