@@ -7,6 +7,12 @@
 - **Distribution:** Available via HACS.
 - **Source Control:** Hosted on a GitHub repository named `ha-road-speed-limits`.
 
+## Key Features
+- **Multi-Source Support:** Users can select from available free sources for speed limit data, including:
+    - OpenStreetMap (OSM)
+    - HERE Maps
+    - TomTom
+
 ## Project Type
 **Code Project** - Python-based Home Assistant Integration.
 

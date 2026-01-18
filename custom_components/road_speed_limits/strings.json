@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Road Speed Limits",
+        "description": "Configure the Road Speed Limits integration by providing entity IDs for latitude and longitude.",
+        "data": {
+          "latitude_entity": "Latitude Entity",
+          "longitude_entity": "Longitude Entity"
+        }
+      }
+    },
+    "error": {
+      "invalid_entity": "One or more entities not found. Please check the entity IDs.",
+      "unknown": "Unexpected error occurred. Please try again."
+    },
+    "abort": {
+      "already_configured": "This integration is already configured with these entities."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Road Speed Limits Options",
+        "description": "Update the latitude and longitude entities.",
+        "data": {
+          "latitude_entity": "Latitude Entity",
+          "longitude_entity": "Longitude Entity"
+        }
+      }
+    },
+    "error": {
+      "invalid_entity": "One or more entities not found. Please check the entity IDs.",
+      "unknown": "Unexpected error occurred. Please try again."
+    }
+  }
+}
