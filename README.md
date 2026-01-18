@@ -1,5 +1,9 @@
 # Road Speed Limits for Home Assistant
 
+<p align="center">
+  <img src="images/icon.svg" alt="Road Speed Limits Icon" width="150">
+</p>
+
 A Home Assistant custom integration that displays current road speed limits based on GPS coordinates using multiple data sources including OpenStreetMap, TomTom, and HERE Maps.
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)

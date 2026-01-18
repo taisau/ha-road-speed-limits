@@ -1,5 +1,8 @@
 {
   "name": "Road Speed Limits",
   "render_readme": true,
-  "domains": ["sensor"]
+  "domains": ["sensor"],
+  "icon": "mdi:speedometer"
 }
+
+

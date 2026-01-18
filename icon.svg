@@ -1,0 +1,13 @@
+<svg width="480" height="600" viewBox="0 0 480 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main Background -->
+  <rect x="10" y="10" width="460" height="580" rx="20" ry="20" fill="white" stroke="black" stroke-width="12"/>
+  
+  <!-- Text: SPEED -->
+  <text x="240" y="140" font-family="Arial, sans-serif" font-weight="bold" font-size="70" text-anchor="middle" fill="black">SPEED</text>
+  
+  <!-- Text: LIMIT -->
+  <text x="240" y="210" font-family="Arial, sans-serif" font-weight="bold" font-size="70" text-anchor="middle" fill="black">LIMIT</text>
+  
+  <!-- Text: 55 -->
+  <text x="240" y="480" font-family="Arial, sans-serif" font-weight="bold" font-size="240" text-anchor="middle" fill="black">55</text>
+</svg>
