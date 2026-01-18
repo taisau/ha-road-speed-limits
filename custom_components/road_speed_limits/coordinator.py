@@ -116,28 +116,29 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
     def get_primary_data(self) -> dict[str, Any] | None:
         """Get data for the configured primary provider with multi-stage fallback."""
         # 1. Try selected primary source
-        if self.data.get(self.data_source):
-            return self.data[self.data_source]
+        primary_res = self.data.get(self.data_source)
+        if primary_res and primary_res.get("speed_limit") is not None:
+            return primary_res
 
         # Define fallback order: HERE -> TomTom -> OSM
-        # (excluding the one we already tried)
         fallback_order = [DATA_SOURCE_HERE, DATA_SOURCE_TOMTOM, DATA_SOURCE_OSM]
         
         for source in fallback_order:
             if source == self.data_source:
                 continue # Already tried as primary
                 
-            if source in self.providers and self.data.get(source):
-                # Found a working fallback
+            res = self.data.get(source)
+            if res and res.get("speed_limit") is not None:
+                # Found a working fallback with actual data
                 if not self.fallback_active:
-                     _LOGGER.info("Primary %s failed, falling back to %s", self.data_source, source)
+                     _LOGGER.info("Primary %s has no data, falling back to %s", self.data_source, source)
                      self.fallback_active = True
                 
                 # Update active provider name for attributes
                 self.active_provider_name = self.providers[source].get_provider_name()
-                return self.data[source]
+                return res
 
-        return None
+        return primary_res # Return the primary (empty) result if all fallbacks fail
 
     def _apply_unit_conversion(self, data: dict[str, Any]) -> dict[str, Any]:
         """Apply unit conversion to fetched data based on user preference.
