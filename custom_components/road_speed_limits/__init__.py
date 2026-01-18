@@ -4,6 +4,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
     CONF_DATA_SOURCE,
@@ -41,8 +42,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     lon_state = hass.states.get(lon_entity_id)
 
     if lat_state is None or lon_state is None:
-        _LOGGER.error("Could not get initial coordinates from entities")
-        return False
+        missing = []
+        if lat_state is None:
+            missing.append(lat_entity_id)
+        if lon_state is None:
+            missing.append(lon_entity_id)
+        
+        raise ConfigEntryNotReady(
+            f"Entities not yet available: {', '.join(missing)}. Retrying later."
+        )
 
     # Extract coordinates (supports both attributes and state)
     latitude = get_coordinate_from_entity(lat_state, "latitude")
@@ -50,12 +58,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Validate coordinates
     if not validate_coordinates(latitude, longitude):
-        _LOGGER.error(
-            "Invalid coordinate values from entities: lat=%s, lon=%s",
-            latitude,
-            longitude,
+        raise ConfigEntryNotReady(
+            f"Invalid coordinate values from entities: lat={latitude}, lon={longitude}. "
+            "Entities might not be ready. Retrying later."
         )
-        return False
 
     # Load API keys from secrets
     tomtom_api_key = None
