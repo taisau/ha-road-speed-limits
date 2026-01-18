@@ -85,7 +85,7 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
                 data = await task
                 results[name] = self._apply_unit_conversion(data)
             except Exception as err:
-                _LOGGER.warning("Provider %s failed: %s", name, err)
+                _LOGGER.debug("Provider %s failed: %s", name, err)
                 results[name] = None
 
         # Determine if the primary source succeeded
