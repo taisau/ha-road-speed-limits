@@ -3,10 +3,14 @@
     "step": {
       "user": {
         "title": "Road Speed Limits",
-        "description": "Configure the Road Speed Limits integration by providing entity IDs for latitude and longitude.",
+        "description": "Configure the Road Speed Limits integration by providing entity IDs for latitude and longitude, and selecting a data source. API keys for TomTom and HERE Maps should be configured in secrets.yaml.",
         "data": {
           "latitude_entity": "Latitude Entity",
-          "longitude_entity": "Longitude Entity"
+          "longitude_entity": "Longitude Entity",
+          "data_source": "Data Source"
+        },
+        "data_description": {
+          "data_source": "Choose the data source for speed limit information. OpenStreetMap is free and requires no API key. TomTom and HERE Maps require API keys configured in secrets.yaml and will automatically fall back to OpenStreetMap if unavailable."
         }
       }
     },
@@ -22,10 +26,14 @@
     "step": {
       "init": {
         "title": "Road Speed Limits Options",
-        "description": "Update the latitude and longitude entities.",
+        "description": "Update the latitude and longitude entities, and change the data source. API keys for TomTom and HERE Maps should be configured in secrets.yaml.",
         "data": {
           "latitude_entity": "Latitude Entity",
-          "longitude_entity": "Longitude Entity"
+          "longitude_entity": "Longitude Entity",
+          "data_source": "Data Source"
+        },
+        "data_description": {
+          "data_source": "Choose the data source for speed limit information. Changes will take effect on the next update. If the selected provider fails, the integration will automatically fall back to OpenStreetMap."
         }
       }
     },

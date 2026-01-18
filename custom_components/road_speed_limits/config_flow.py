@@ -9,10 +9,19 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_DATA_SOURCE,
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
+    DATA_SOURCE_HERE,
+    DATA_SOURCE_NAMES,
+    DATA_SOURCE_OSM,
+    DATA_SOURCE_TOMTOM,
+    DEFAULT_DATA_SOURCE,
     DOMAIN,
+    HERE_API_KEY_NAME,
+    TOMTOM_API_KEY_NAME,
 )
+from .helpers import get_coordinate_from_entity, validate_coordinates
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,11 +32,25 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     lon_entity = data[CONF_LONGITUDE_ENTITY]
 
     # Check if entities exist
-    if hass.states.get(lat_entity) is None:
+    lat_state = hass.states.get(lat_entity)
+    lon_state = hass.states.get(lon_entity)
+
+    if lat_state is None:
         raise ValueError(f"Latitude entity '{lat_entity}' not found")
 
-    if hass.states.get(lon_entity) is None:
+    if lon_state is None:
         raise ValueError(f"Longitude entity '{lon_entity}' not found")
+
+    # Extract and validate coordinates
+    latitude = get_coordinate_from_entity(lat_state, "latitude")
+    longitude = get_coordinate_from_entity(lon_state, "longitude")
+
+    if not validate_coordinates(latitude, longitude):
+        raise ValueError(
+            f"Could not extract valid coordinates from entities. "
+            f"Ensure entities have latitude/longitude attributes or numeric state values. "
+            f"Got lat={latitude}, lon={longitude}"
+        )
 
     # Return info to be stored in the config entry
     return {"title": "Road Speed Limits"}
@@ -73,6 +96,27 @@ class RoadSpeedLimitsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_LONGITUDE_ENTITY): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain=["sensor", "device_tracker", "person", "zone"]
+                    )
+                ),
+                vol.Required(
+                    CONF_DATA_SOURCE, default=DEFAULT_DATA_SOURCE
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=DATA_SOURCE_OSM,
+                                label=DATA_SOURCE_NAMES[DATA_SOURCE_OSM],
+                            ),
+                            selector.SelectOptionDict(
+                                value=DATA_SOURCE_TOMTOM,
+                                label=DATA_SOURCE_NAMES[DATA_SOURCE_TOMTOM],
+                            ),
+                            selector.SelectOptionDict(
+                                value=DATA_SOURCE_HERE,
+                                label=DATA_SOURCE_NAMES[DATA_SOURCE_HERE],
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
             }
@@ -135,6 +179,30 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain=["sensor", "device_tracker", "person", "zone"]
+                    )
+                ),
+                vol.Required(
+                    CONF_DATA_SOURCE,
+                    default=self.config_entry.data.get(
+                        CONF_DATA_SOURCE, DEFAULT_DATA_SOURCE
+                    ),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=DATA_SOURCE_OSM,
+                                label=DATA_SOURCE_NAMES[DATA_SOURCE_OSM],
+                            ),
+                            selector.SelectOptionDict(
+                                value=DATA_SOURCE_TOMTOM,
+                                label=DATA_SOURCE_NAMES[DATA_SOURCE_TOMTOM],
+                            ),
+                            selector.SelectOptionDict(
+                                value=DATA_SOURCE_HERE,
+                                label=DATA_SOURCE_NAMES[DATA_SOURCE_HERE],
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
             }

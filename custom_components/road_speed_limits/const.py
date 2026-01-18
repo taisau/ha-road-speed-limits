@@ -6,21 +6,44 @@ DOMAIN = "road_speed_limits"
 # Configuration keys
 CONF_LATITUDE_ENTITY = "latitude_entity"
 CONF_LONGITUDE_ENTITY = "longitude_entity"
+CONF_DATA_SOURCE = "data_source"
 
 # Update interval
 UPDATE_INTERVAL = timedelta(minutes=5)
 
+# Data sources
+DATA_SOURCE_OSM = "osm"
+DATA_SOURCE_TOMTOM = "tomtom"
+DATA_SOURCE_HERE = "here"
+
+# Data source display names
+DATA_SOURCE_NAMES = {
+    DATA_SOURCE_OSM: "OpenStreetMap",
+    DATA_SOURCE_TOMTOM: "TomTom",
+    DATA_SOURCE_HERE: "HERE Maps",
+}
+
 # OpenStreetMap Overpass API
 OSM_OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 OSM_SEARCH_RADIUS = 50  # meters
+
+# TomTom API
+TOMTOM_API_URL = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
+TOMTOM_API_KEY_NAME = "tomtom_api_key"
+
+# HERE API
+HERE_API_URL = "https://data.traffic.hereapi.com/v7/flow"
+HERE_API_KEY_NAME = "here_api_key"
 
 # Sensor attributes
 ATTR_LATITUDE = "latitude"
 ATTR_LONGITUDE = "longitude"
 ATTR_ROAD_NAME = "road_name"
 ATTR_DATA_SOURCE = "data_source"
+ATTR_ACTIVE_PROVIDER = "active_provider"
+ATTR_FALLBACK_ACTIVE = "fallback_active"
 ATTR_LAST_UPDATE = "last_update"
 
 # Default values
 DEFAULT_NAME = "Road Speed Limit"
-DATA_SOURCE_OSM = "OpenStreetMap"
+DEFAULT_DATA_SOURCE = DATA_SOURCE_OSM

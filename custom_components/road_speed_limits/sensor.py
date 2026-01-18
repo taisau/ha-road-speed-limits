@@ -10,16 +10,19 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    ATTR_ACTIVE_PROVIDER,
     ATTR_DATA_SOURCE,
+    ATTR_FALLBACK_ACTIVE,
     ATTR_LAST_UPDATE,
     ATTR_LATITUDE,
     ATTR_LONGITUDE,
     ATTR_ROAD_NAME,
-    DATA_SOURCE_OSM,
+    DATA_SOURCE_NAMES,
     DEFAULT_NAME,
     DOMAIN,
 )
 from .coordinator import RoadSpeedLimitsCoordinator
+from .helpers import get_coordinate_from_entity, validate_coordinates
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,8 +77,15 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
+        # Get selected data source display name
+        selected_source = DATA_SOURCE_NAMES.get(
+            self.coordinator.data_source, self.coordinator.data_source
+        )
+
         attributes = {
-            ATTR_DATA_SOURCE: DATA_SOURCE_OSM,
+            ATTR_DATA_SOURCE: selected_source,
+            ATTR_ACTIVE_PROVIDER: self.coordinator.active_provider_name,
+            ATTR_FALLBACK_ACTIVE: self.coordinator.fallback_active,
             ATTR_LAST_UPDATE: datetime.now().isoformat(),
             ATTR_LATITUDE: self.coordinator.latitude,
             ATTR_LONGITUDE: self.coordinator.longitude,
@@ -96,19 +106,24 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
         lon_state = self.hass.states.get(self._lon_entity_id)
 
         if lat_state and lon_state:
-            try:
-                new_lat = float(lat_state.state)
-                new_lon = float(lon_state.state)
+            # Extract coordinates (supports both attributes and state)
+            new_lat = get_coordinate_from_entity(lat_state, "latitude")
+            new_lon = get_coordinate_from_entity(lon_state, "longitude")
 
-                # Update coordinator location if changed
+            # Validate and update if coordinates are valid and changed
+            if validate_coordinates(new_lat, new_lon):
                 if (
                     new_lat != self.coordinator.latitude
                     or new_lon != self.coordinator.longitude
                 ):
                     self.coordinator.update_location(new_lat, new_lon)
                     _LOGGER.debug("Updated location to %s, %s", new_lat, new_lon)
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid coordinate values from entities")
+            else:
+                _LOGGER.warning(
+                    "Invalid coordinate values from entities: lat=%s, lon=%s",
+                    new_lat,
+                    new_lon,
+                )
 
         super()._handle_coordinator_update()
 
