@@ -1,10 +1,8 @@
 """DataUpdateCoordinator for Road Speed Limits."""
+import asyncio
 from datetime import timedelta
 import logging
 from typing import Any
-
-import aiohttp
-import async_timeout
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -55,60 +53,91 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         self.fallback_active = False
         self.active_provider_name = None
 
-        # Initialize providers
-        self.osm_provider = OSMSpeedLimitProvider()
-
-        # Set primary provider based on data source
-        if data_source == DATA_SOURCE_TOMTOM:
-            self.primary_provider = TomTomSpeedLimitProvider(tomtom_api_key)
-        elif data_source == DATA_SOURCE_HERE:
-            self.primary_provider = HERESpeedLimitProvider(here_api_key)
-        else:
-            self.primary_provider = self.osm_provider
-
-        self.active_provider_name = self.primary_provider.get_provider_name()
+        # Initialize providers dict
+        self.providers: dict[str, BaseSpeedLimitProvider] = {}
+        
+        # Always add OSM
+        self.providers[DATA_SOURCE_OSM] = OSMSpeedLimitProvider()
+        
+        # Add TomTom if key is present
+        if tomtom_api_key:
+            self.providers[DATA_SOURCE_TOMTOM] = TomTomSpeedLimitProvider(tomtom_api_key)
+            
+        # Add HERE if key is present
+        if here_api_key:
+            self.providers[DATA_SOURCE_HERE] = HERESpeedLimitProvider(here_api_key)
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch speed limit data from configured provider with fallback."""
-        # Try primary provider first
-        try:
-            data = await self.primary_provider.fetch_speed_limit(
-                self.latitude, self.longitude
+        """Fetch speed limit data from all configured providers."""
+        results = {}
+        
+        # Create tasks for all providers
+        tasks = {
+            name: self.hass.async_create_task(
+                provider.fetch_speed_limit(self.latitude, self.longitude)
             )
-            # Reset fallback if primary provider succeeds
-            if self.fallback_active:
-                _LOGGER.info(
-                    "Primary provider %s recovered, disabling fallback",
-                    self.primary_provider.get_provider_name(),
-                )
-                self.fallback_active = False
-            self.active_provider_name = self.primary_provider.get_provider_name()
-            return self._apply_unit_conversion(data)
+            for name, provider in self.providers.items()
+        }
+        
+        # Wait for all to complete, handling exceptions individually
+        for name, task in tasks.items():
+            try:
+                data = await task
+                results[name] = self._apply_unit_conversion(data)
+            except Exception as err:
+                _LOGGER.warning("Provider %s failed: %s", name, err)
+                results[name] = None
 
-        except Exception as err:
-            # If primary provider is not OSM, try falling back to OSM
-            if self.primary_provider != self.osm_provider:
-                _LOGGER.warning(
-                    "Primary provider %s failed: %s, falling back to OSM",
-                    self.primary_provider.get_provider_name(),
-                    err,
-                )
-                self.fallback_active = True
-                try:
-                    data = await self.osm_provider.fetch_speed_limit(
-                        self.latitude, self.longitude
-                    )
-                    self.active_provider_name = self.osm_provider.get_provider_name()
-                    return self._apply_unit_conversion(data)
-                except Exception as osm_err:
-                    _LOGGER.error("OSM fallback also failed: %s", osm_err)
-                    raise UpdateFailed(
-                        f"Both primary provider and OSM fallback failed"
-                    ) from osm_err
+        # Determine if the primary source succeeded
+        primary_data = results.get(self.data_source)
+        
+        if primary_data is not None:
+            # Primary succeeded
+            if self.fallback_active and self.data_source != DATA_SOURCE_OSM:
+                _LOGGER.info("Primary provider %s recovered", self.data_source)
+                self.fallback_active = False
+            self.active_provider_name = self.providers[self.data_source].get_provider_name()
+        
+        elif self.data_source != DATA_SOURCE_OSM:
+            # Primary failed, check fallback (OSM)
+            _LOGGER.warning("Primary provider %s failed, checking fallback", self.data_source)
+            self.fallback_active = True
+            
+            if results.get(DATA_SOURCE_OSM) is not None:
+                self.active_provider_name = self.providers[DATA_SOURCE_OSM].get_provider_name()
             else:
-                # Primary provider is OSM and it failed
-                _LOGGER.error("OSM provider failed: %s", err)
-                raise UpdateFailed(f"Error fetching speed limit: {err}") from err
+                # Both failed
+                _LOGGER.error("Both primary and fallback providers failed")
+                # We don't raise UpdateFailed here because we want partial results for other sensors
+                # but the main sensor will show 'unknown' or old data
+
+        return results
+
+    def get_primary_data(self) -> dict[str, Any] | None:
+        """Get data for the configured primary provider with multi-stage fallback."""
+        # 1. Try selected primary source
+        if self.data.get(self.data_source):
+            return self.data[self.data_source]
+
+        # Define fallback order: HERE -> TomTom -> OSM
+        # (excluding the one we already tried)
+        fallback_order = [DATA_SOURCE_HERE, DATA_SOURCE_TOMTOM, DATA_SOURCE_OSM]
+        
+        for source in fallback_order:
+            if source == self.data_source:
+                continue # Already tried as primary
+                
+            if source in self.providers and self.data.get(source):
+                # Found a working fallback
+                if not self.fallback_active:
+                     _LOGGER.info("Primary %s failed, falling back to %s", self.data_source, source)
+                     self.fallback_active = True
+                
+                # Update active provider name for attributes
+                self.active_provider_name = self.providers[source].get_provider_name()
+                return self.data[source]
+
+        return None
 
     def _apply_unit_conversion(self, data: dict[str, Any]) -> dict[str, Any]:
         """Apply unit conversion to fetched data based on user preference.
@@ -122,6 +151,9 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         if not data or data.get("speed_limit") is None:
             return data
 
+        # Create a copy to avoid mutating original if needed elsewhere (though here it's fresh)
+        data = data.copy()
+        
         source_unit = data.get("unit")
         if source_unit and source_unit != self.unit_preference:
             # Convert speed limit to user's preferred unit

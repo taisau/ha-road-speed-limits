@@ -18,6 +18,9 @@ from .const import (
     ATTR_LONGITUDE,
     ATTR_ROAD_NAME,
     DATA_SOURCE_NAMES,
+    DATA_SOURCE_OSM,
+    DATA_SOURCE_TOMTOM,
+    DATA_SOURCE_HERE,
     DEFAULT_NAME,
     DOMAIN,
 )
@@ -37,13 +40,42 @@ async def async_setup_entry(
     lat_entity_id = hass.data[DOMAIN][entry.entry_id]["lat_entity_id"]
     lon_entity_id = hass.data[DOMAIN][entry.entry_id]["lon_entity_id"]
 
-    async_add_entities(
-        [RoadSpeedLimitSensor(coordinator, entry, lat_entity_id, lon_entity_id)]
+    entities = []
+
+    # 1. Create the Primary Sensor (Original behavior)
+    entities.append(
+        RoadSpeedLimitSensor(coordinator, entry, lat_entity_id, lon_entity_id)
     )
+
+    # 2. Create specific sensors for each available provider
+    # Always create OSM
+    entities.append(
+        SourceSpecificSpeedLimitSensor(
+            coordinator, entry, DATA_SOURCE_OSM, "OSM"
+        )
+    )
+
+    # Create TomTom if configured
+    if DATA_SOURCE_TOMTOM in coordinator.providers:
+        entities.append(
+            SourceSpecificSpeedLimitSensor(
+                coordinator, entry, DATA_SOURCE_TOMTOM, "TomTom"
+            )
+        )
+
+    # Create HERE if configured
+    if DATA_SOURCE_HERE in coordinator.providers:
+        entities.append(
+            SourceSpecificSpeedLimitSensor(
+                coordinator, entry, DATA_SOURCE_HERE, "HERE"
+            )
+        )
+
+    async_add_entities(entities)
 
 
 class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a Road Speed Limit sensor."""
+    """Representation of the primary Road Speed Limit sensor."""
 
     def __init__(
         self,
@@ -63,15 +95,17 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> int | None:
         """Return the state of the sensor."""
-        if self.coordinator.data:
-            return self.coordinator.data.get("speed_limit")
+        data = self.coordinator.get_primary_data()
+        if data:
+            return data.get("speed_limit")
         return None
 
     @property
     def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement."""
-        if self.coordinator.data:
-            return self.coordinator.data.get("unit")
+        data = self.coordinator.get_primary_data()
+        if data:
+            return data.get("unit")
         return None
 
     @property
@@ -91,8 +125,9 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
             ATTR_LONGITUDE: self.coordinator.longitude,
         }
 
-        if self.coordinator.data:
-            road_name = self.coordinator.data.get("road_name")
+        data = self.coordinator.get_primary_data()
+        if data:
+            road_name = data.get("road_name")
             if road_name:
                 attributes[ATTR_ROAD_NAME] = road_name
 
@@ -119,7 +154,7 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
                     self.coordinator.update_location(new_lat, new_lon)
                     _LOGGER.debug("Updated location to %s, %s", new_lat, new_lon)
             else:
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "Invalid coordinate values from entities: lat=%s, lon=%s",
                     new_lat,
                     new_lon,
@@ -130,4 +165,65 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
+        # Available if coordinator ran successfully at least once
+        return self.coordinator.last_update_success
+
+
+class SourceSpecificSpeedLimitSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a specific source speed limit sensor (e.g., just TomTom)."""
+
+    def __init__(
+        self,
+        coordinator: RoadSpeedLimitsCoordinator,
+        entry: ConfigEntry,
+        source_key: str,
+        source_name: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self.source_key = source_key
+        self._attr_name = f"Road Speed Limit {source_name}"
+        self._attr_unique_id = f"{entry.entry_id}_speed_limit_{source_key}"
+        self._attr_icon = "mdi:speedometer"
+        
+        # Entity ID suggestion (e.g., sensor.road_speed_limit_tomtom)
+        self.entity_id = f"sensor.road_speed_limit_{source_key}"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the state of the sensor."""
+        if not self.coordinator.data:
+            return None
+        
+        source_data = self.coordinator.data.get(self.source_key)
+        if source_data:
+            return source_data.get("speed_limit")
+        return None
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the unit of measurement."""
+        if not self.coordinator.data:
+            return None
+            
+        source_data = self.coordinator.data.get(self.source_key)
+        if source_data:
+            return source_data.get("unit")
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes."""
+        attributes = {
+            ATTR_DATA_SOURCE: DATA_SOURCE_NAMES.get(self.source_key, self.source_key),
+            ATTR_LAST_UPDATE: datetime.now().isoformat(),
+        }
+
+        if self.coordinator.data:
+            source_data = self.coordinator.data.get(self.source_key)
+            if source_data:
+                road_name = source_data.get("road_name")
+                if road_name:
+                    attributes[ATTR_ROAD_NAME] = road_name
+
+        return attributes
