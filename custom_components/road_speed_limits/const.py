@@ -7,6 +7,7 @@ DOMAIN = "road_speed_limits"
 CONF_LATITUDE_ENTITY = "latitude_entity"
 CONF_LONGITUDE_ENTITY = "longitude_entity"
 CONF_DATA_SOURCE = "data_source"
+CONF_UNIT = "unit"
 
 # Update interval
 UPDATE_INTERVAL = timedelta(minutes=5)
@@ -44,6 +45,17 @@ ATTR_ACTIVE_PROVIDER = "active_provider"
 ATTR_FALLBACK_ACTIVE = "fallback_active"
 ATTR_LAST_UPDATE = "last_update"
 
+# Units
+UNIT_KMH = "km/h"
+UNIT_MPH = "mph"
+
+# Unit display names
+UNIT_NAMES = {
+    UNIT_KMH: "Kilometers per hour (km/h)",
+    UNIT_MPH: "Miles per hour (mph)",
+}
+
 # Default values
 DEFAULT_NAME = "Road Speed Limit"
 DEFAULT_DATA_SOURCE = DATA_SOURCE_OSM
+DEFAULT_UNIT = UNIT_KMH

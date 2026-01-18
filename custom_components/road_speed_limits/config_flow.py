@@ -12,14 +12,19 @@ from .const import (
     CONF_DATA_SOURCE,
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
+    CONF_UNIT,
     DATA_SOURCE_HERE,
     DATA_SOURCE_NAMES,
     DATA_SOURCE_OSM,
     DATA_SOURCE_TOMTOM,
     DEFAULT_DATA_SOURCE,
+    DEFAULT_UNIT,
     DOMAIN,
     HERE_API_KEY_NAME,
     TOMTOM_API_KEY_NAME,
+    UNIT_KMH,
+    UNIT_MPH,
+    UNIT_NAMES,
 )
 from .helpers import get_coordinate_from_entity, validate_coordinates
 
@@ -119,6 +124,21 @@ class RoadSpeedLimitsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
+                vol.Required(CONF_UNIT, default=DEFAULT_UNIT): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=UNIT_KMH,
+                                label=UNIT_NAMES[UNIT_KMH],
+                            ),
+                            selector.SelectOptionDict(
+                                value=UNIT_MPH,
+                                label=UNIT_NAMES[UNIT_MPH],
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
             }
         )
 
@@ -162,12 +182,14 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
             else:
                 return self.async_create_entry(title="", data=user_input)
 
-        # Pre-fill with current values
+        # Pre-fill with current values (check both options and data)
+        from .helpers import get_config_value
+
         data_schema = vol.Schema(
             {
                 vol.Required(
                     CONF_LATITUDE_ENTITY,
-                    default=self.config_entry.data.get(CONF_LATITUDE_ENTITY),
+                    default=get_config_value(self.config_entry, CONF_LATITUDE_ENTITY),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain=["sensor", "device_tracker", "person", "zone"]
@@ -175,7 +197,7 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                 ),
                 vol.Required(
                     CONF_LONGITUDE_ENTITY,
-                    default=self.config_entry.data.get(CONF_LONGITUDE_ENTITY),
+                    default=get_config_value(self.config_entry, CONF_LONGITUDE_ENTITY),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain=["sensor", "device_tracker", "person", "zone"]
@@ -183,8 +205,8 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                 ),
                 vol.Required(
                     CONF_DATA_SOURCE,
-                    default=self.config_entry.data.get(
-                        CONF_DATA_SOURCE, DEFAULT_DATA_SOURCE
+                    default=get_config_value(
+                        self.config_entry, CONF_DATA_SOURCE, DEFAULT_DATA_SOURCE
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -200,6 +222,26 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                             selector.SelectOptionDict(
                                 value=DATA_SOURCE_HERE,
                                 label=DATA_SOURCE_NAMES[DATA_SOURCE_HERE],
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(
+                    CONF_UNIT,
+                    default=get_config_value(
+                        self.config_entry, CONF_UNIT, DEFAULT_UNIT
+                    ),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=UNIT_KMH,
+                                label=UNIT_NAMES[UNIT_KMH],
+                            ),
+                            selector.SelectOptionDict(
+                                value=UNIT_MPH,
+                                label=UNIT_NAMES[UNIT_MPH],
                             ),
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,

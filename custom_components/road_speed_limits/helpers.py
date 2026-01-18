@@ -2,9 +2,31 @@
 import logging
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import State
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def get_config_value(entry: ConfigEntry, key: str, default: Any = None) -> Any:
+    """Get a config value from either options or data.
+
+    Options take precedence over data to support runtime reconfiguration.
+
+    Args:
+        entry: The config entry
+        key: The configuration key
+        default: Default value if key not found
+
+    Returns:
+        The configuration value
+    """
+    # Check options first (from options flow)
+    if entry.options and key in entry.options:
+        return entry.options[key]
+
+    # Fall back to data (from initial setup)
+    return entry.data.get(key, default)
 
 
 def get_coordinate_from_entity(
@@ -78,3 +100,30 @@ def validate_coordinates(latitude: float | None, longitude: float | None) -> boo
         return False
 
     return True
+
+
+def convert_speed(speed: int | None, from_unit: str, to_unit: str) -> int | None:
+    """Convert speed between units.
+
+    Args:
+        speed: Speed value to convert
+        from_unit: Source unit (km/h or mph)
+        to_unit: Target unit (km/h or mph)
+
+    Returns:
+        Converted speed value (rounded to nearest integer), or None if input is None
+    """
+    if speed is None:
+        return None
+
+    if from_unit == to_unit:
+        return speed
+
+    if from_unit == "km/h" and to_unit == "mph":
+        # km/h to mph: divide by 1.609344
+        return round(speed / 1.609344)
+    elif from_unit == "mph" and to_unit == "km/h":
+        # mph to km/h: multiply by 1.609344
+        return round(speed * 1.609344)
+
+    return speed

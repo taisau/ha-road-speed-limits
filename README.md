@@ -8,6 +8,7 @@ A Home Assistant custom integration that displays current road speed limits base
 
 - **Multiple Data Sources**: Choose between OpenStreetMap (free), TomTom, or HERE Maps for speed limit data
 - **Automatic Fallback**: If your selected provider fails, the integration automatically falls back to OpenStreetMap
+- **Unit Selection**: Display speed limits in kilometers per hour (km/h) or miles per hour (mph) with automatic conversion
 - **Real-time Speed Limit Detection**: Automatically fetches speed limit information from your chosen provider
 - **Flexible Location Input**: Use any Home Assistant entity that provides latitude and longitude coordinates
 - **Easy Configuration**: Simple UI-based setup through Home Assistant's integration page
@@ -19,20 +20,26 @@ A Home Assistant custom integration that displays current road speed limits base
 ### Via HACS (Recommended)
 
 1. Open HACS in your Home Assistant instance
-2. Click on "Integrations"
-3. Click the three dots in the top right corner
-4. Select "Custom repositories"
-5. Add the URL: `https://github.com/yourusername/ha-road-speed-limits`
-6. Select category: "Integration"
-7. Click "Add"
-8. Find "Road Speed Limits" in the integration list and click "Install"
-9. Restart Home Assistant
+2. Click on **Integrations**
+3. Click the **three dots** (⋮) in the top right corner
+4. Select **Custom repositories**
+5. Add the repository URL: `https://github.com/taisau/ha-road-speed-limits`
+6. Select category: **Integration**
+7. Click **Add**
+8. Search for "Road Speed Limits" in HACS and click on it
+9. Click **Download**
+10. **Restart Home Assistant** (required for Home Assistant to load the new integration)
 
-### Manual Installation
+After restart, proceed to the Configuration section below.
+
+<details>
+<summary><b>Manual Installation</b> (click to expand)</summary>
 
 1. Download the `custom_components/road_speed_limits` folder from this repository
 2. Copy it to your Home Assistant's `config/custom_components/` directory
 3. Restart Home Assistant
+
+</details>
 
 ## Configuration
 
@@ -81,9 +88,12 @@ here_api_key: "your_here_api_key_here"
      - **OpenStreetMap** (default, free, no API key required)
      - **TomTom** (requires API key in secrets.yaml)
      - **HERE Maps** (requires API key in secrets.yaml)
+   - **Unit**: Choose your preferred unit:
+     - **Kilometers per hour (km/h)** (default)
+     - **Miles per hour (mph)**
 6. Click **Submit**
 
-The integration will create a sensor entity named `sensor.road_speed_limit` that displays the current speed limit.
+The integration will create a sensor entity named `sensor.road_speed_limit` that displays the current speed limit in your selected unit. Speed limits are automatically converted from the data source to your preferred unit.
 
 #### Supported GPS Entity Formats
 
@@ -122,17 +132,17 @@ sensor.gps_longitude:
 
 **The integration automatically detects which format your entities use** and extracts coordinates accordingly.
 
-### Changing Data Source
+### Changing Settings
 
-You can change the data source after setup:
+You can change the data source, unit, or GPS entities after setup:
 
 1. Go to **Settings** → **Devices & Services**
 2. Find the "Road Speed Limits" integration
 3. Click **Configure**
-4. Select a different data source
+4. Update any settings (data source, unit, entities)
 5. Click **Submit**
 
-The integration will reload and start using the new data source on the next update.
+The integration will reload and apply the new settings on the next update.
 
 ## Usage
 

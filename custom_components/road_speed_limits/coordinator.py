@@ -15,7 +15,9 @@ from .const import (
     DATA_SOURCE_TOMTOM,
     DOMAIN,
     UPDATE_INTERVAL,
+    UNIT_KMH,
 )
+from .helpers import convert_speed
 from .providers import (
     BaseSpeedLimitProvider,
     HERESpeedLimitProvider,
@@ -35,6 +37,7 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         latitude: float,
         longitude: float,
         data_source: str = DATA_SOURCE_OSM,
+        unit_preference: str = UNIT_KMH,
         tomtom_api_key: str | None = None,
         here_api_key: str | None = None,
     ) -> None:
@@ -48,6 +51,7 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         self.latitude = latitude
         self.longitude = longitude
         self.data_source = data_source
+        self.unit_preference = unit_preference
         self.fallback_active = False
         self.active_provider_name = None
 
@@ -79,7 +83,7 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
                 )
                 self.fallback_active = False
             self.active_provider_name = self.primary_provider.get_provider_name()
-            return data
+            return self._apply_unit_conversion(data)
 
         except Exception as err:
             # If primary provider is not OSM, try falling back to OSM
@@ -95,7 +99,7 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
                         self.latitude, self.longitude
                     )
                     self.active_provider_name = self.osm_provider.get_provider_name()
-                    return data
+                    return self._apply_unit_conversion(data)
                 except Exception as osm_err:
                     _LOGGER.error("OSM fallback also failed: %s", osm_err)
                     raise UpdateFailed(
@@ -105,6 +109,29 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
                 # Primary provider is OSM and it failed
                 _LOGGER.error("OSM provider failed: %s", err)
                 raise UpdateFailed(f"Error fetching speed limit: {err}") from err
+
+    def _apply_unit_conversion(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Apply unit conversion to fetched data based on user preference.
+
+        Args:
+            data: Raw data from provider
+
+        Returns:
+            Data with converted speed limit and corrected unit
+        """
+        if not data or data.get("speed_limit") is None:
+            return data
+
+        source_unit = data.get("unit")
+        if source_unit and source_unit != self.unit_preference:
+            # Convert speed limit to user's preferred unit
+            converted_speed = convert_speed(
+                data["speed_limit"], source_unit, self.unit_preference
+            )
+            data["speed_limit"] = converted_speed
+            data["unit"] = self.unit_preference
+
+        return data
 
     def update_location(self, latitude: float, longitude: float) -> None:
         """Update the coordinates to search."""

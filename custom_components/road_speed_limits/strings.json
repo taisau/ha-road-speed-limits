@@ -7,10 +7,12 @@
         "data": {
           "latitude_entity": "Latitude Entity",
           "longitude_entity": "Longitude Entity",
-          "data_source": "Data Source"
+          "data_source": "Data Source",
+          "unit": "Unit"
         },
         "data_description": {
-          "data_source": "Choose the data source for speed limit information. OpenStreetMap is free and requires no API key. TomTom and HERE Maps require API keys configured in secrets.yaml and will automatically fall back to OpenStreetMap if unavailable."
+          "data_source": "Choose the data source for speed limit information. OpenStreetMap is free and requires no API key. TomTom and HERE Maps require API keys configured in secrets.yaml and will automatically fall back to OpenStreetMap if unavailable.",
+          "unit": "Select the unit for displaying speed limits. The integration will automatically convert values from the data source to your preferred unit."
         }
       }
     },
@@ -30,10 +32,12 @@
         "data": {
           "latitude_entity": "Latitude Entity",
           "longitude_entity": "Longitude Entity",
-          "data_source": "Data Source"
+          "data_source": "Data Source",
+          "unit": "Unit"
         },
         "data_description": {
-          "data_source": "Choose the data source for speed limit information. Changes will take effect on the next update. If the selected provider fails, the integration will automatically fall back to OpenStreetMap."
+          "data_source": "Choose the data source for speed limit information. Changes will take effect on the next update. If the selected provider fails, the integration will automatically fall back to OpenStreetMap.",
+          "unit": "Select the unit for displaying speed limits. The integration will automatically convert values from the data source to your preferred unit."
         }
       }
     },

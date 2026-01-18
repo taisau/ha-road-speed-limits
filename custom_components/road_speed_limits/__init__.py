@@ -9,13 +9,15 @@ from .const import (
     CONF_DATA_SOURCE,
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
+    CONF_UNIT,
     DEFAULT_DATA_SOURCE,
+    DEFAULT_UNIT,
     DOMAIN,
     HERE_API_KEY_NAME,
     TOMTOM_API_KEY_NAME,
 )
 from .coordinator import RoadSpeedLimitsCoordinator
-from .helpers import get_coordinate_from_entity, validate_coordinates
+from .helpers import get_config_value, get_coordinate_from_entity, validate_coordinates
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,12 +26,15 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Road Speed Limits from a config entry."""
-    # Get entity IDs from config
-    lat_entity_id = entry.data[CONF_LATITUDE_ENTITY]
-    lon_entity_id = entry.data[CONF_LONGITUDE_ENTITY]
+    # Get entity IDs from config (options take precedence over data)
+    lat_entity_id = get_config_value(entry, CONF_LATITUDE_ENTITY)
+    lon_entity_id = get_config_value(entry, CONF_LONGITUDE_ENTITY)
 
     # Get data source (default to OSM for backward compatibility)
-    data_source = entry.data.get(CONF_DATA_SOURCE, DEFAULT_DATA_SOURCE)
+    data_source = get_config_value(entry, CONF_DATA_SOURCE, DEFAULT_DATA_SOURCE)
+
+    # Get unit preference (default to km/h)
+    unit_preference = get_config_value(entry, CONF_UNIT, DEFAULT_UNIT)
 
     # Get initial coordinates from entities
     lat_state = hass.states.get(lat_entity_id)
@@ -75,6 +80,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         latitude,
         longitude,
         data_source=data_source,
+        unit_preference=unit_preference,
         tomtom_api_key=tomtom_api_key,
         here_api_key=here_api_key,
     )
