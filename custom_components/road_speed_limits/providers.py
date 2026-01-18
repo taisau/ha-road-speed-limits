@@ -48,6 +48,11 @@ class BaseSpeedLimitProvider(ABC):
 class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
     """OpenStreetMap speed limit provider."""
 
+    def __init__(self, api_key: str | None = None, unit_preference: str | None = None) -> None:
+        """Initialize the provider."""
+        super().__init__(api_key)
+        self.unit_preference = unit_preference or "km/h"
+
     def get_provider_name(self) -> str:
         """Return the display name of this provider."""
         return DATA_SOURCE_NAMES[DATA_SOURCE_OSM]
@@ -169,9 +174,9 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
                 )
                 return speed, "km/h"
             else:
-                # No unit specified, assume km/h (OSM default)
+                # No unit specified, assume user preference
                 speed = int(maxspeed)
-                return speed, "km/h"
+                return speed, self.unit_preference
         except ValueError:
             _LOGGER.warning("Could not parse speed limit value: %s", maxspeed)
             return None, "km/h"

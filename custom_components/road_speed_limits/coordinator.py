@@ -56,8 +56,8 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         # Initialize providers dict
         self.providers: dict[str, BaseSpeedLimitProvider] = {}
         
-        # Always add OSM
-        self.providers[DATA_SOURCE_OSM] = OSMSpeedLimitProvider()
+        # Always add OSM with unit preference for smart defaults
+        self.providers[DATA_SOURCE_OSM] = OSMSpeedLimitProvider(unit_preference=unit_preference)
         
         # Add TomTom if key is present
         if tomtom_api_key:
