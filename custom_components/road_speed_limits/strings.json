@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Road Speed Limits",
-        "description": "Configure the Road Speed Limits integration by providing entity IDs for latitude and longitude, and selecting a data source. API keys for TomTom and HERE Maps should be configured in secrets.yaml.",
+        "description": "Configure the Road Speed Limits integration by providing entity IDs for latitude and longitude, and selecting a data source. API keys for TomTom and HERE Maps should be configured in secrets.yaml.\n\nFor GPS entities with lat/lon attributes (device trackers, person entities, GPS sensors), enter the SAME entity in both fields.",
         "data": {
           "latitude_entity": "Latitude Entity",
           "longitude_entity": "Longitude Entity",
@@ -11,6 +11,8 @@
           "unit": "Unit"
         },
         "data_description": {
+          "latitude_entity": "For combined GPS entities with attributes, use the SAME entity here and in Longitude Entity (e.g., sensor.gps_data for both).",
+          "longitude_entity": "For combined GPS entities with attributes, use the SAME entity here and in Latitude Entity (e.g., sensor.gps_data for both).",
           "data_source": "Choose the data source for speed limit information. OpenStreetMap is free and requires no API key. TomTom and HERE Maps require API keys configured in secrets.yaml and will automatically fall back to OpenStreetMap if unavailable.",
           "unit": "Select the unit for displaying speed limits. The integration will automatically convert values from the data source to your preferred unit."
         }
@@ -28,7 +30,7 @@
     "step": {
       "init": {
         "title": "Road Speed Limits Options",
-        "description": "Update the latitude and longitude entities, and change the data source. API keys for TomTom and HERE Maps should be configured in secrets.yaml.",
+        "description": "Update the latitude and longitude entities, and change the data source. API keys for TomTom and HERE Maps should be configured in secrets.yaml.\n\nFor GPS entities with lat/lon attributes (device trackers, person entities, GPS sensors), enter the SAME entity in both fields.",
         "data": {
           "latitude_entity": "Latitude Entity",
           "longitude_entity": "Longitude Entity",
@@ -36,6 +38,8 @@
           "unit": "Unit"
         },
         "data_description": {
+          "latitude_entity": "For combined GPS entities with attributes, use the SAME entity here and in Longitude Entity (e.g., sensor.gps_data for both).",
+          "longitude_entity": "For combined GPS entities with attributes, use the SAME entity here and in Latitude Entity (e.g., sensor.gps_data for both).",
           "data_source": "Choose the data source for speed limit information. Changes will take effect on the next update. If the selected provider fails, the integration will automatically fall back to OpenStreetMap.",
           "unit": "Select the unit for displaying speed limits. The integration will automatically convert values from the data source to your preferred unit."
         }

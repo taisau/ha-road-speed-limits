@@ -84,6 +84,11 @@ here_api_key: "your_here_api_key_here"
 5. Provide the following information:
    - **Latitude Entity**: Entity that provides latitude coordinate
    - **Longitude Entity**: Entity that provides longitude coordinate
+
+   **Important:**
+   - For GPS sensors, device trackers, or person entities with latitude/longitude attributes, enter the **SAME entity in BOTH fields** (e.g., `sensor.pepwave_gps_data` for both Latitude and Longitude)
+   - For separate sensor entities, use different entities (e.g., `sensor.latitude` for Latitude and `sensor.longitude` for Longitude)
+
    - **Data Source**: Choose from:
      - **OpenStreetMap** (default, free, no API key required)
      - **TomTom** (requires API key in secrets.yaml)
