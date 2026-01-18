@@ -51,3 +51,10 @@ Since this is a Home Assistant integration, "running" it implies installing it i
 - Follow [Home Assistant Developer Docs](https://developers.home-assistant.io/).
 - Ensure `manifest.json` is accurate.
 - Use asynchronous programming (`async`/`await`) as per HA standards.
+
+## Release Procedure
+Because this project is distributed via HACS, the following steps **MUST** be followed for every update:
+1.  **Bump Version**: Increment the `version` in `custom_components/road_speed_limits/manifest.json`.
+2.  **Commit**: Commit the changes (including the version bump).
+3.  **Push**: Push the commit to GitHub.
+4.  **Tag**: Create a git tag for the new version (e.g., `git tag v0.0.2`) and push it (`git push origin v0.0.2`). HACS requires this tag to detect the update.
