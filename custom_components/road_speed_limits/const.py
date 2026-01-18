@@ -26,7 +26,7 @@ DATA_SOURCE_NAMES = {
 
 # OpenStreetMap Overpass API
 OSM_OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-OSM_SEARCH_RADIUS = 50  # meters
+OSM_SEARCH_RADIUS = 150  # meters
 
 # TomTom API
 TOMTOM_API_URL = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"

@@ -194,7 +194,7 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
         params = {
             "point": f"{latitude},{longitude}",
             "key": self.api_key,
-            "unit": "KMPH",
+            "unit": "MPH",
         }
 
         async with aiohttp.ClientSession() as session:
@@ -227,14 +227,14 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
             return {
                 "speed_limit": speed_limit if speed_limit else None,
                 "road_name": road_name,
-                "unit": "km/h",
+                "unit": "mph",
             }
         except (KeyError, TypeError) as err:
             _LOGGER.warning("Could not parse TomTom response: %s", err)
             return {
                 "speed_limit": None,
                 "road_name": None,
-                "unit": "km/h",
+                "unit": "mph",
             }
 
 

@@ -111,7 +111,7 @@ def validate_coordinates(latitude: float | None, longitude: float | None) -> boo
 
 
 def convert_speed(speed: int | None, from_unit: str, to_unit: str) -> int | None:
-    """Convert speed between units.
+    """Convert speed between units and round to nearest 5 for mph.
 
     Args:
         speed: Speed value to convert
@@ -119,17 +119,22 @@ def convert_speed(speed: int | None, from_unit: str, to_unit: str) -> int | None
         to_unit: Target unit (km/h or mph)
 
     Returns:
-        Converted speed value (rounded to nearest integer), or None if input is None
+        Converted speed value, or None if input is None
     """
     if speed is None:
         return None
 
     if from_unit == to_unit:
+        # If already in mph, still apply the rounding to multiple of 5
+        if to_unit == "mph":
+             return (speed // 5) * 5
         return speed
 
     if from_unit == "km/h" and to_unit == "mph":
         # km/h to mph: divide by 1.609344
-        return round(speed / 1.609344)
+        converted = speed / 1.609344
+        # Round down to next 5 (e.g. 6.2 -> 5, 27 -> 25)
+        return int((converted // 5) * 5)
     elif from_unit == "mph" and to_unit == "km/h":
         # mph to km/h: multiply by 1.609344
         return round(speed * 1.609344)
