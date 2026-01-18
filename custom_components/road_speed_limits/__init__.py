@@ -1,10 +1,12 @@
 """The Road Speed Limits integration."""
 import logging
+import os
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.util.yaml.loader import load_yaml
 
 from .const import (
     CONF_DATA_SOURCE,
@@ -68,14 +70,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     here_api_key = None
 
     try:
-        secrets = await hass.helpers.secrets.async_load_secrets()
-        tomtom_api_key = secrets.get(TOMTOM_API_KEY_NAME)
-        here_api_key = secrets.get(HERE_API_KEY_NAME)
+        secrets_path = hass.config.path("secrets.yaml")
+        if os.path.exists(secrets_path):
+            secrets = await hass.async_add_executor_job(load_yaml, secrets_path)
+            if secrets:
+                tomtom_api_key = secrets.get(TOMTOM_API_KEY_NAME)
+                here_api_key = secrets.get(HERE_API_KEY_NAME)
 
-        if not tomtom_api_key:
-            _LOGGER.debug("TomTom API key not found in secrets.yaml")
-        if not here_api_key:
-            _LOGGER.debug("HERE API key not found in secrets.yaml")
+            if not tomtom_api_key:
+                _LOGGER.debug("TomTom API key not found in secrets.yaml")
+            if not here_api_key:
+                _LOGGER.debug("HERE API key not found in secrets.yaml")
+        else:
+            _LOGGER.debug("secrets.yaml not found at %s", secrets_path)
 
     except Exception as err:
         _LOGGER.warning("Could not load secrets.yaml: %s", err)

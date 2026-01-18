@@ -1,5 +1,6 @@
 """Data providers for Road Speed Limits integration."""
 from abc import ABC, abstractmethod
+import asyncio
 import logging
 from typing import Any
 
@@ -66,16 +67,53 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
         """
 
         async with aiohttp.ClientSession() as session:
-            async with async_timeout.timeout(10):
-                async with session.post(
-                    OSM_OVERPASS_URL,
-                    data={"data": query},
-                ) as response:
-                    if response.status != 200:
-                        raise Exception(f"OSM API returned status {response.status}")
-
-                    data = await response.json()
-                    return self._parse_osm_response(data)
+            # Retry loop for resilience
+            retries = 3
+            last_exception = None
+            
+            for attempt in range(retries):
+                try:
+                    async with async_timeout.timeout(15):
+                        async with session.post(
+                            OSM_OVERPASS_URL,
+                            data={"data": query},
+                        ) as response:
+                            if response.status == 200:
+                                data = await response.json()
+                                return self._parse_osm_response(data)
+                            
+                            # Handle transient errors (Rate limit, Gateway Timeout, etc.)
+                            if response.status in (429, 502, 503, 504):
+                                _LOGGER.warning(
+                                    "OSM API returned status %s on attempt %d/%d",
+                                    response.status,
+                                    attempt + 1,
+                                    retries
+                                )
+                                if attempt < retries - 1:
+                                    # Exponential backoff: 2s, 4s, etc.
+                                    await asyncio.sleep(2 * (attempt + 1))
+                                    continue
+                                else:
+                                    raise Exception(f"OSM API returned status {response.status}")
+                            
+                            # Other errors
+                            raise Exception(f"OSM API returned status {response.status}")
+                            
+                except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+                    last_exception = err
+                    _LOGGER.warning(
+                        "Error connecting to OSM API on attempt %d/%d: %s",
+                        attempt + 1,
+                        retries,
+                        err
+                    )
+                    if attempt < retries - 1:
+                        await asyncio.sleep(2 * (attempt + 1))
+                        continue
+            
+            # If we get here, all retries failed
+            raise Exception(f"OSM API failed after {retries} attempts") from last_exception
 
     def _parse_osm_response(self, data: dict[str, Any]) -> dict[str, Any]:
         """Parse OpenStreetMap response and extract speed limit."""

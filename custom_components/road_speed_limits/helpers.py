@@ -65,6 +65,14 @@ def get_coordinate_from_entity(
 
     # Fall back to entity state (for separate sensor entities)
     try:
+        if entity_state.state in ("unavailable", "unknown"):
+            _LOGGER.debug(
+                "Entity %s is %s, cannot get coordinate", 
+                entity_state.entity_id, 
+                entity_state.state
+            )
+            return None
+            
         return float(entity_state.state)
     except (ValueError, TypeError) as err:
         _LOGGER.warning(
