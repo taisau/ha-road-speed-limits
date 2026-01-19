@@ -1,5 +1,6 @@
 """Data providers for Road Speed Limits integration."""
 from abc import ABC, abstractmethod
+from typing import Any
 import asyncio
 import logging
 import math
