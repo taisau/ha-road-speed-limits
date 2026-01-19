@@ -23,8 +23,6 @@ from .const import (
     HERE_API_KEY_NAME,
     TOMTOM_API_KEY_NAME,
 )
-from .coordinator import RoadSpeedLimitsCoordinator
-from .helpers import get_config_value, get_coordinate_from_entity, validate_coordinates
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +31,9 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Road Speed Limits from a config entry."""
+    from .coordinator import RoadSpeedLimitsCoordinator
+    from .helpers import get_config_value, get_coordinate_from_entity, validate_coordinates
+
     # Get entity IDs from config (options take precedence over data)
     lat_entity_id = get_config_value(entry, CONF_LATITUDE_ENTITY)
     lon_entity_id = get_config_value(entry, CONF_LONGITUDE_ENTITY)

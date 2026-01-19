@@ -5,9 +5,6 @@ import asyncio
 import logging
 import math
 
-import aiohttp
-import async_timeout
-
 from .const import (
     DATA_SOURCE_NAMES,
     DATA_SOURCE_OSM,
@@ -92,6 +89,9 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
         self, latitude: float, longitude: float
     ) -> SpeedLimitData:
         """Query OpenStreetMap Overpass API for speed limit data."""
+        import aiohttp
+        import async_timeout
+
         # Construct Overpass query
         query = f"""
         [out:json];
@@ -286,6 +286,9 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
         self, latitude: float, longitude: float
     ) -> SpeedLimitData:
         """Query TomTom Traffic API for speed limit data."""
+        import aiohttp
+        import async_timeout
+
         if not self.api_key:
             raise ValueError("TomTom API key not configured")
 
@@ -353,6 +356,9 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
         self, latitude: float, longitude: float
     ) -> SpeedLimitData:
         """Query HERE Flow API for speed limit data."""
+        import aiohttp
+        import async_timeout
+
         if not self.api_key:
             raise ValueError("HERE API key not configured")
 
