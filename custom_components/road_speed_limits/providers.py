@@ -138,7 +138,7 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
                             
                 except (aiohttp.ClientError, asyncio.TimeoutError) as err:
                     last_exception = err
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         "Error connecting to OSM API on attempt %d/%d: %s",
                         attempt + 1,
                         retries,
@@ -312,7 +312,7 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
                         data = await response.json()
                         return self._parse_tomtom_response(data)
         except asyncio.TimeoutError as err:
-            _LOGGER.warning("TomTom API request timed out: %s", err)
+            _LOGGER.debug("TomTom API request timed out: %s", err)
             raise
 
     def _parse_tomtom_response(self, data: dict[str, Any]) -> SpeedLimitData:
@@ -380,7 +380,7 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
                         data = await response.json()
                         return self._parse_here_response(data)
         except asyncio.TimeoutError as err:
-            _LOGGER.warning("HERE API request timed out: %s", err)
+            _LOGGER.debug("HERE API request timed out: %s", err)
             raise
 
     def _parse_here_response(self, data: dict[str, Any]) -> SpeedLimitData:

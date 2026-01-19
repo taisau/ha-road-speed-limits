@@ -173,7 +173,7 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
             return results
 
         # 3. Primary failed or returned no data - try configured fallbacks
-        _LOGGER.warning("Primary provider %s has no data, trying fallbacks", self.data_source)
+        _LOGGER.debug("Primary provider %s has no data, trying fallbacks", self.data_source)
         self.fallback_active = True
 
         # Build fallback order from configured providers (Issue 4)
