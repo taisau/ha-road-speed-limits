@@ -1,4 +1,5 @@
 """The Road Speed Limits integration."""
+from datetime import timedelta
 import logging
 import os
 
@@ -12,9 +13,12 @@ from .const import (
     CONF_DATA_SOURCE,
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
+    CONF_SPEED_ENTITY,
     CONF_UNIT,
+    CONF_UPDATE_INTERVAL,
     DEFAULT_DATA_SOURCE,
     DEFAULT_UNIT,
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     HERE_API_KEY_NAME,
     TOMTOM_API_KEY_NAME,
@@ -32,12 +36,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Get entity IDs from config (options take precedence over data)
     lat_entity_id = get_config_value(entry, CONF_LATITUDE_ENTITY)
     lon_entity_id = get_config_value(entry, CONF_LONGITUDE_ENTITY)
+    speed_entity_id = get_config_value(entry, CONF_SPEED_ENTITY, None)
 
     # Get data source (default to OSM for backward compatibility)
     data_source = get_config_value(entry, CONF_DATA_SOURCE, DEFAULT_DATA_SOURCE)
 
     # Get unit preference (default to mph)
     unit_preference = get_config_value(entry, CONF_UNIT, DEFAULT_UNIT)
+
+    # Get update interval preference (default to 5 minutes)
+    update_interval_minutes = get_config_value(
+        entry, CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+    )
+    update_interval = timedelta(minutes=update_interval_minutes)
 
     # Get initial coordinates from entities
     lat_state = hass.states.get(lat_entity_id)
@@ -94,6 +105,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         longitude,
         data_source=data_source,
         unit_preference=unit_preference,
+        update_interval=update_interval,
+        speed_entity_id=speed_entity_id,
         tomtom_api_key=tomtom_api_key,
         here_api_key=here_api_key,
     )
@@ -104,6 +117,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": coordinator,
         "lat_entity_id": lat_entity_id,
         "lon_entity_id": lon_entity_id,
+        "speed_entity_id": speed_entity_id,
     }
 
     # Fetch initial data

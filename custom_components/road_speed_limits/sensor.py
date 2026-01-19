@@ -1,5 +1,5 @@
 """Sensor platform for Road Speed Limits integration."""
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
@@ -23,11 +23,31 @@ from .const import (
     DATA_SOURCE_HERE,
     DEFAULT_NAME,
     DOMAIN,
+    SPEED_INTERVAL_THRESHOLDS,
 )
 from .coordinator import RoadSpeedLimitsCoordinator
 from .helpers import get_coordinate_from_entity, validate_coordinates
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def calculate_interval_from_speed(speed_kmh: float) -> int:
+    """Calculate update interval in seconds based on vehicle speed.
+
+    Args:
+        speed_kmh: Vehicle speed in km/h
+
+    Returns:
+        Update interval in seconds based on speed thresholds
+    """
+    # Find the appropriate interval based on speed
+    # Thresholds are in ascending order, so we check from highest to lowest
+    for threshold_speed, interval_seconds in reversed(SPEED_INTERVAL_THRESHOLDS):
+        if speed_kmh >= threshold_speed:
+            return interval_seconds
+
+    # Default to the lowest threshold if somehow speed is negative
+    return SPEED_INTERVAL_THRESHOLDS[0][1]
 
 
 async def async_setup_entry(
@@ -39,12 +59,13 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     lat_entity_id = hass.data[DOMAIN][entry.entry_id]["lat_entity_id"]
     lon_entity_id = hass.data[DOMAIN][entry.entry_id]["lon_entity_id"]
+    speed_entity_id = hass.data[DOMAIN][entry.entry_id].get("speed_entity_id")
 
     entities = []
 
     # 1. Create the Primary Sensor (Original behavior)
     entities.append(
-        RoadSpeedLimitSensor(coordinator, entry, lat_entity_id, lon_entity_id)
+        RoadSpeedLimitSensor(coordinator, entry, lat_entity_id, lon_entity_id, speed_entity_id)
     )
 
     # 2. Create specific sensors for each available provider
@@ -83,6 +104,7 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
         entry: ConfigEntry,
         lat_entity_id: str,
         lon_entity_id: str,
+        speed_entity_id: str | None = None,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -90,7 +112,9 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_speed_limit"
         self._lat_entity_id = lat_entity_id
         self._lon_entity_id = lon_entity_id
+        self._speed_entity_id = speed_entity_id
         self._attr_icon = "mdi:speedometer"
+        self._last_interval_minutes = None  # Track last interval to avoid excessive logging
 
     @property
     def native_value(self) -> int | None:
@@ -160,6 +184,46 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
                     new_lon,
                 )
 
+        # Dynamic interval adjustment based on speed (if speed entity configured)
+        if self._speed_entity_id:
+            speed_state = self.hass.states.get(self._speed_entity_id)
+            if speed_state and speed_state.state not in ("unavailable", "unknown"):
+                try:
+                    # Get speed value (assume it's in km/h)
+                    speed_kmh = float(speed_state.state)
+
+                    # Calculate appropriate interval based on speed (returns seconds)
+                    new_interval_seconds = calculate_interval_from_speed(speed_kmh)
+
+                    # Get current interval in seconds
+                    current_interval_seconds = int(self.coordinator.update_interval.total_seconds())
+
+                    # Only update if interval has changed significantly (avoid thrashing)
+                    if abs(current_interval_seconds - new_interval_seconds) >= 1:
+                        self.coordinator.update_interval = timedelta(seconds=new_interval_seconds)
+
+                        # Log only if interval actually changed from last logged value
+                        if self._last_interval_minutes != new_interval_seconds:
+                            # Format interval nicely for logging
+                            if new_interval_seconds >= 60:
+                                interval_display = f"{new_interval_seconds // 60} min"
+                            else:
+                                interval_display = f"{new_interval_seconds} sec"
+
+                            _LOGGER.info(
+                                "Adjusted update interval to %s based on speed %.1f km/h",
+                                interval_display,
+                                speed_kmh,
+                            )
+                            self._last_interval_minutes = new_interval_seconds
+
+                except (ValueError, TypeError) as err:
+                    _LOGGER.debug(
+                        "Could not parse speed from entity %s: %s",
+                        self._speed_entity_id,
+                        err,
+                    )
+
         super()._handle_coordinator_update()
 
     @property
@@ -185,9 +249,10 @@ class SourceSpecificSpeedLimitSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = f"Road Speed Limit {source_name}"
         self._attr_unique_id = f"{entry.entry_id}_speed_limit_{source_key}"
         self._attr_icon = "mdi:speedometer"
-        
-        # Entity ID suggestion (e.g., sensor.road_speed_limit_tomtom)
-        self.entity_id = f"sensor.road_speed_limit_{source_key}"
+
+        # Use suggested_object_id instead of entity_id (Issue 8)
+        # This allows HA to apply its naming rules while suggesting our preferred ID
+        self._attr_suggested_object_id = f"road_speed_limit_{source_key}"
 
     @property
     def native_value(self) -> int | None:

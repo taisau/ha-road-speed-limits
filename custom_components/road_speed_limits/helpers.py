@@ -113,6 +113,11 @@ def validate_coordinates(latitude: float | None, longitude: float | None) -> boo
 def convert_speed(speed: int | None, from_unit: str, to_unit: str) -> int | None:
     """Convert speed between units and round to nearest 5 for mph.
 
+    The rounding to multiples of 5 for mph is intentional to match US/UK
+    speed limit sign standards (e.g., 25, 30, 35, 40, 45, 50 mph).
+    This ensures metric conversions result in realistic speed limit values
+    that match actual signage rather than arbitrary numbers like 31 or 37 mph.
+
     Args:
         speed: Speed value to convert
         from_unit: Source unit (km/h or mph)
@@ -127,7 +132,7 @@ def convert_speed(speed: int | None, from_unit: str, to_unit: str) -> int | None
     if from_unit == to_unit:
         # If already in mph, still apply the rounding to multiple of 5
         if to_unit == "mph":
-             return (speed // 5) * 5
+            return (speed // 5) * 5
         return speed
 
     if from_unit == "km/h" and to_unit == "mph":

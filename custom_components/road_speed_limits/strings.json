@@ -8,13 +8,17 @@
           "latitude_entity": "Latitude Entity",
           "longitude_entity": "Longitude Entity",
           "data_source": "Data Source",
-          "unit": "Unit"
+          "unit": "Unit",
+          "update_interval": "Update Interval",
+          "speed_entity": "Speed Entity (Optional)"
         },
         "data_description": {
           "latitude_entity": "For combined GPS entities with attributes, use the SAME entity here and in Longitude Entity (e.g., sensor.gps_data for both).",
           "longitude_entity": "For combined GPS entities with attributes, use the SAME entity here and in Latitude Entity (e.g., sensor.gps_data for both).",
           "data_source": "Choose the data source for speed limit information. OpenStreetMap is free and requires no API key. TomTom and HERE Maps require API keys configured in secrets.yaml and will automatically fall back to OpenStreetMap if unavailable.",
-          "unit": "Select the unit for displaying speed limits. The integration will automatically convert values from the data source to your preferred unit."
+          "unit": "Select the unit for displaying speed limits. The integration will automatically convert values from the data source to your preferred unit.",
+          "update_interval": "Base update interval (1-60 minutes). Configure Speed Entity below for dynamic speed-based intervals. When speed entity is configured, this is only used as fallback. Recommended: 5 minutes.",
+          "speed_entity": "Entity providing vehicle speed in km/h. Dynamic intervals: Below 35 mph = 2 sec, 35-50 mph = 5 sec, Above 50 mph = 2 sec. Cache only used below 10 mph. Leave empty to disable."
         }
       }
     },
@@ -35,13 +39,17 @@
           "latitude_entity": "Latitude Entity",
           "longitude_entity": "Longitude Entity",
           "data_source": "Data Source",
-          "unit": "Unit"
+          "unit": "Unit",
+          "update_interval": "Update Interval",
+          "speed_entity": "Speed Entity (Optional)"
         },
         "data_description": {
           "latitude_entity": "For combined GPS entities with attributes, use the SAME entity here and in Longitude Entity (e.g., sensor.gps_data for both).",
           "longitude_entity": "For combined GPS entities with attributes, use the SAME entity here and in Latitude Entity (e.g., sensor.gps_data for both).",
           "data_source": "Choose the data source for speed limit information. Changes will take effect on the next update. If the selected provider fails, the integration will automatically fall back to OpenStreetMap.",
-          "unit": "Select the unit for displaying speed limits. The integration will automatically convert values from the data source to your preferred unit."
+          "unit": "Select the unit for displaying speed limits. The integration will automatically convert values from the data source to your preferred unit.",
+          "update_interval": "Base update interval (1-60 minutes). Configure Speed Entity below for dynamic speed-based intervals. When speed entity is configured, this is only used as fallback. Recommended: 5 minutes.",
+          "speed_entity": "Entity providing vehicle speed in km/h. Dynamic intervals: Below 35 mph = 2 sec, 35-50 mph = 5 sec, Above 50 mph = 2 sec. Cache only used below 10 mph. Leave empty to disable."
         }
       }
     },

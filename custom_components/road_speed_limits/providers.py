@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 import asyncio
 import logging
-from typing import Any
+import math
 
 import aiohttp
 import async_timeout
@@ -15,10 +15,39 @@ from .const import (
     HERE_API_URL,
     OSM_OVERPASS_URL,
     OSM_SEARCH_RADIUS,
+    SpeedLimitData,
     TOMTOM_API_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate Haversine distance in meters between two points.
+
+    Args:
+        lat1: Latitude of first point
+        lon1: Longitude of first point
+        lat2: Latitude of second point
+        lon2: Longitude of second point
+
+    Returns:
+        Distance in meters
+    """
+    # Earth radius in meters
+    R = 6371000
+
+    # Convert to radians
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+
+    # Haversine formula
+    a = math.sin(delta_lat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c
 
 
 class BaseSpeedLimitProvider(ABC):
@@ -31,13 +60,14 @@ class BaseSpeedLimitProvider(ABC):
     @abstractmethod
     async def fetch_speed_limit(
         self, latitude: float, longitude: float
-    ) -> dict[str, Any]:
+    ) -> SpeedLimitData:
         """Fetch speed limit data for given coordinates.
 
-        Returns dict with keys:
+        Returns SpeedLimitData with keys:
         - speed_limit: int | None
         - road_name: str | None
         - unit: str (km/h or mph)
+        - distance: float | None (distance in meters to the road)
         """
 
     @abstractmethod
@@ -59,7 +89,7 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
 
     async def fetch_speed_limit(
         self, latitude: float, longitude: float
-    ) -> dict[str, Any]:
+    ) -> SpeedLimitData:
         """Query OpenStreetMap Overpass API for speed limit data."""
         # Construct Overpass query
         query = f"""
@@ -85,7 +115,7 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
                         ) as response:
                             if response.status == 200:
                                 data = await response.json()
-                                return self._parse_osm_response(data)
+                                return self._parse_osm_response(data, latitude, longitude)
                             
                             # Handle transient errors (Rate limit, Gateway Timeout, etc.)
                             if response.status in (429, 502, 503, 504):
@@ -100,10 +130,10 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
                                     await asyncio.sleep(2 * (attempt + 1))
                                     continue
                                 else:
-                                    raise Exception(f"OSM API returned status {response.status}")
+                                    raise aiohttp.ClientError(f"OSM API returned status {response.status}")
                             
-                            # Other errors
-                            raise Exception(f"OSM API returned status {response.status}")
+                            # Other errors (non-transient)
+                            raise aiohttp.ClientError(f"OSM API returned status {response.status}")
                             
                 except (aiohttp.ClientError, asyncio.TimeoutError) as err:
                     last_exception = err
@@ -118,10 +148,19 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
                         continue
             
             # If we get here, all retries failed
-            raise Exception(f"OSM API failed after {retries} attempts") from last_exception
+            raise aiohttp.ClientError(f"OSM API failed after {retries} attempts") from last_exception
 
-    def _parse_osm_response(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Parse OpenStreetMap response and extract speed limit."""
+    def _parse_osm_response(self, data: dict[str, Any], query_lat: float, query_lon: float) -> SpeedLimitData:
+        """Parse OpenStreetMap response and extract speed limit from closest road.
+
+        Args:
+            data: OSM response data
+            query_lat: Query latitude for distance calculation
+            query_lon: Query longitude for distance calculation
+
+        Returns:
+            SpeedLimitData with closest road information
+        """
         elements = data.get("elements", [])
 
         if not elements:
@@ -130,9 +169,12 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
                 "speed_limit": None,
                 "road_name": None,
                 "unit": None,
+                "distance": None,
             }
 
-        # Take the first element with maxspeed
+        # Build list of roads with speed limits and calculate distances
+        roads_with_distance = []
+
         for element in elements:
             tags = element.get("tags", {})
             maxspeed = tags.get("maxspeed")
@@ -142,17 +184,67 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
                 speed_value, unit = self._parse_speed_value(maxspeed)
                 road_name = tags.get("name")
 
-                return {
+                # Calculate distance to this road element
+                # For ways, use the center point; for nodes, use the node location
+                if element.get("type") == "node":
+                    elem_lat = element.get("lat")
+                    elem_lon = element.get("lon")
+                    if elem_lat is not None and elem_lon is not None:
+                        distance = _calculate_distance(query_lat, query_lon, elem_lat, elem_lon)
+                    else:
+                        distance = float('inf')
+                elif element.get("type") == "way":
+                    # For ways, calculate center from nodes if available
+                    nodes = element.get("nodes", [])
+                    if nodes and "lat" in element:
+                        # Overpass returns lat/lon for ways with "out body"
+                        elem_lat = element.get("lat")
+                        elem_lon = element.get("lon")
+                        if elem_lat is not None and elem_lon is not None:
+                            distance = _calculate_distance(query_lat, query_lon, elem_lat, elem_lon)
+                        else:
+                            # If no center provided, estimate using bounding box center
+                            bounds = element.get("bounds", {})
+                            if bounds:
+                                center_lat = (bounds.get("minlat", 0) + bounds.get("maxlat", 0)) / 2
+                                center_lon = (bounds.get("minlon", 0) + bounds.get("maxlon", 0)) / 2
+                                distance = _calculate_distance(query_lat, query_lon, center_lat, center_lon)
+                            else:
+                                distance = float('inf')
+                    else:
+                        distance = float('inf')
+                else:
+                    distance = float('inf')
+
+                roads_with_distance.append({
                     "speed_limit": speed_value,
                     "road_name": road_name,
                     "unit": unit,
-                }
+                    "distance": distance if distance != float('inf') else None,
+                })
 
-        return {
-            "speed_limit": None,
-            "road_name": None,
-            "unit": None,
-        }
+        # If no roads found with speed limits
+        if not roads_with_distance:
+            return {
+                "speed_limit": None,
+                "road_name": None,
+                "unit": None,
+                "distance": None,
+            }
+
+        # Sort by distance and return the closest road
+        roads_with_distance.sort(key=lambda x: x["distance"] if x["distance"] is not None else float('inf'))
+        closest_road = roads_with_distance[0]
+
+        _LOGGER.debug(
+            "Found %d roads, closest is %sm away with speed limit %s %s",
+            len(roads_with_distance),
+            round(closest_road["distance"]) if closest_road["distance"] is not None else "unknown",
+            closest_road["speed_limit"],
+            closest_road["unit"]
+        )
+
+        return closest_road
 
     def _parse_speed_value(self, maxspeed: str) -> tuple[int | None, str]:
         """Parse maxspeed value and extract numeric value and unit."""
@@ -191,10 +283,10 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
 
     async def fetch_speed_limit(
         self, latitude: float, longitude: float
-    ) -> dict[str, Any]:
+    ) -> SpeedLimitData:
         """Query TomTom Traffic API for speed limit data."""
         if not self.api_key:
-            raise Exception("TomTom API key not configured")
+            raise ValueError("TomTom API key not configured")
 
         params = {
             "point": f"{latitude},{longitude}",
@@ -202,20 +294,24 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
             "unit": "MPH",
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with async_timeout.timeout(10):
-                async with session.get(TOMTOM_API_URL, params=params) as response:
-                    if response.status == 403:
-                        raise Exception("TomTom API key is invalid or expired")
-                    if response.status != 200:
-                        raise Exception(
-                            f"TomTom API returned status {response.status}"
-                        )
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with async_timeout.timeout(10):
+                    async with session.get(TOMTOM_API_URL, params=params) as response:
+                        if response.status == 403:
+                            raise aiohttp.ClientError("TomTom API key is invalid or expired")
+                        if response.status != 200:
+                            raise aiohttp.ClientError(
+                                f"TomTom API returned status {response.status}"
+                            )
 
-                    data = await response.json()
-                    return self._parse_tomtom_response(data)
+                        data = await response.json()
+                        return self._parse_tomtom_response(data)
+        except asyncio.TimeoutError as err:
+            _LOGGER.warning("TomTom API request timed out: %s", err)
+            raise
 
-    def _parse_tomtom_response(self, data: dict[str, Any]) -> dict[str, Any]:
+    def _parse_tomtom_response(self, data: dict[str, Any]) -> SpeedLimitData:
         """Parse TomTom response and extract speed limit."""
         try:
             flow_data = data.get("flowSegmentData", {})
@@ -233,6 +329,7 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
                 "speed_limit": speed_limit if speed_limit else None,
                 "road_name": road_name,
                 "unit": "mph",
+                "distance": 0.0,  # TomTom returns single point match
             }
         except (KeyError, TypeError) as err:
             _LOGGER.warning("Could not parse TomTom response: %s", err)
@@ -240,6 +337,7 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
                 "speed_limit": None,
                 "road_name": None,
                 "unit": "mph",
+                "distance": None,
             }
 
 
@@ -252,10 +350,10 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
 
     async def fetch_speed_limit(
         self, latitude: float, longitude: float
-    ) -> dict[str, Any]:
+    ) -> SpeedLimitData:
         """Query HERE Flow API for speed limit data."""
         if not self.api_key:
-            raise Exception("HERE API key not configured")
+            raise ValueError("HERE API key not configured")
 
         params = {
             "locationReferencing": "shape",
@@ -263,18 +361,22 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
             "apiKey": self.api_key,
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with async_timeout.timeout(10):
-                async with session.get(HERE_API_URL, params=params) as response:
-                    if response.status == 401 or response.status == 403:
-                        raise Exception("HERE API key is invalid or expired")
-                    if response.status != 200:
-                        raise Exception(f"HERE API returned status {response.status}")
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with async_timeout.timeout(10):
+                    async with session.get(HERE_API_URL, params=params) as response:
+                        if response.status == 401 or response.status == 403:
+                            raise aiohttp.ClientError("HERE API key is invalid or expired")
+                        if response.status != 200:
+                            raise aiohttp.ClientError(f"HERE API returned status {response.status}")
 
-                    data = await response.json()
-                    return self._parse_here_response(data)
+                        data = await response.json()
+                        return self._parse_here_response(data)
+        except asyncio.TimeoutError as err:
+            _LOGGER.warning("HERE API request timed out: %s", err)
+            raise
 
-    def _parse_here_response(self, data: dict[str, Any]) -> dict[str, Any]:
+    def _parse_here_response(self, data: dict[str, Any]) -> SpeedLimitData:
         """Parse HERE response and extract speed limit."""
         try:
             results = data.get("results", [])
@@ -285,6 +387,7 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
                     "speed_limit": None,
                     "road_name": None,
                     "unit": "km/h",
+                    "distance": None,
                 }
 
             # Get first result
@@ -302,6 +405,7 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
                 "speed_limit": speed_limit if speed_limit else None,
                 "road_name": road_name,
                 "unit": "km/h",
+                "distance": 0.0,  # HERE returns area match
             }
         except (KeyError, TypeError, IndexError) as err:
             _LOGGER.warning("Could not parse HERE response: %s", err)
@@ -309,4 +413,5 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
                 "speed_limit": None,
                 "road_name": None,
                 "unit": "km/h",
+                "distance": None,
             }
