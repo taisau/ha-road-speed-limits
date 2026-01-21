@@ -10,6 +10,7 @@
           "data_source": "Data Source",
           "unit": "Unit",
           "min_update_distance": "Minimum Update Distance (meters)",
+          "min_update_time": "Stop Polling After (seconds)",
           "speed_entity": "Speed (Optional)"
         },
         "data_description": {
@@ -17,7 +18,8 @@
           "longitude_entity": "Select the sensor entity that provides longitude.",
           "data_source": "Choose the data source for speed limit information. OpenStreetMap is free. TomTom and HERE require API keys in secrets.yaml.",
           "unit": "Select the unit for displaying speed limits.",
-          "min_update_distance": "Minimum distance in meters to move before triggering a new speed limit check. Higher values save API usage.",
+          "min_update_distance": "Distance moved required to wake up the polling loop.",
+          "min_update_time": "If no movement occurs for this many seconds, polling will stop to save API calls.",
           "speed_entity": "Entity providing vehicle speed in km/h. Used to bypass cache when moving fast."
         }
       }
@@ -41,6 +43,7 @@
           "data_source": "Data Source",
           "unit": "Unit",
           "min_update_distance": "Minimum Update Distance (meters)",
+          "min_update_time": "Stop Polling After (seconds)",
           "speed_entity": "Speed (Optional)"
         },
         "data_description": {
@@ -48,7 +51,8 @@
           "longitude_entity": "Select the sensor entity that provides longitude.",
           "data_source": "Choose the data source for speed limit information.",
           "unit": "Select the unit for displaying speed limits.",
-          "min_update_distance": "Minimum distance in meters to move before triggering a new speed limit check. Higher values save API usage.",
+          "min_update_distance": "Distance moved required to wake up the polling loop.",
+          "min_update_time": "If no movement occurs for this many seconds, polling will stop to save API calls.",
           "speed_entity": "Entity providing vehicle speed in km/h. Used to bypass cache when moving fast."
         }
       }

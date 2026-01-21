@@ -13,10 +13,12 @@ from .const import (
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
     CONF_MIN_UPDATE_DISTANCE,
+    CONF_MIN_UPDATE_TIME,
     CONF_SPEED_ENTITY,
     CONF_UNIT,
     DEFAULT_DATA_SOURCE,
     DEFAULT_MIN_UPDATE_DISTANCE,
+    DEFAULT_MIN_UPDATE_TIME,
     DEFAULT_UNIT,
     DOMAIN,
     HERE_API_KEY_NAME,
@@ -25,7 +27,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -47,6 +49,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Get min update distance preference (default to 20m)
     min_update_distance = get_config_value(
         entry, CONF_MIN_UPDATE_DISTANCE, DEFAULT_MIN_UPDATE_DISTANCE
+    )
+
+    # Get min update time preference (default to 60s)
+    min_update_time = get_config_value(
+        entry, CONF_MIN_UPDATE_TIME, DEFAULT_MIN_UPDATE_TIME
     )
 
     # Get initial coordinates from entities
@@ -105,6 +112,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data_source=data_source,
         unit_preference=unit_preference,
         min_update_distance=min_update_distance,
+        min_update_time=min_update_time,
         speed_entity_id=speed_entity_id,
         tomtom_api_key=tomtom_api_key,
         here_api_key=here_api_key,

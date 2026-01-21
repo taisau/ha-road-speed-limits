@@ -20,10 +20,12 @@ CONF_DATA_SOURCE = "data_source"
 CONF_UNIT = "unit"
 CONF_SPEED_ENTITY = "speed_entity"
 CONF_MIN_UPDATE_DISTANCE = "min_update_distance"
+CONF_MIN_UPDATE_TIME = "min_update_time"
 
 # Default values
 DEFAULT_SPEED_ENTITY = "sensor.vehicle_speed"
 DEFAULT_MIN_UPDATE_DISTANCE = 20  # meters
+DEFAULT_MIN_UPDATE_TIME = 60  # seconds
 
 # Cache threshold (speed in km/h below which cache is used)
 # Set to 10 mph (16 km/h) - cache only helps when nearly stationary

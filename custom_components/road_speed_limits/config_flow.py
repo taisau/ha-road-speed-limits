@@ -13,6 +13,7 @@ from .const import (
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
     CONF_MIN_UPDATE_DISTANCE,
+    CONF_MIN_UPDATE_TIME,
     CONF_SPEED_ENTITY,
     CONF_UNIT,
     DATA_SOURCE_HERE,
@@ -21,6 +22,7 @@ from .const import (
     DATA_SOURCE_TOMTOM,
     DEFAULT_DATA_SOURCE,
     DEFAULT_MIN_UPDATE_DISTANCE,
+    DEFAULT_MIN_UPDATE_TIME,
     DEFAULT_SPEED_ENTITY,
     DEFAULT_UNIT,
     DOMAIN,
@@ -152,6 +154,17 @@ class RoadSpeedLimitsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
+                vol.Required(
+                    CONF_MIN_UPDATE_TIME, default=DEFAULT_MIN_UPDATE_TIME
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=10,
+                        max=3600,
+                        step=10,
+                        unit_of_measurement="seconds",
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
                 vol.Optional(
                     CONF_SPEED_ENTITY, default=DEFAULT_SPEED_ENTITY
                 ): selector.EntitySelector(
@@ -274,6 +287,20 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                         max=1000,
                         step=1,
                         unit_of_measurement="meters",
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Required(
+                    CONF_MIN_UPDATE_TIME,
+                    default=get_config_value(
+                        self.config_entry, CONF_MIN_UPDATE_TIME, DEFAULT_MIN_UPDATE_TIME
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=10,
+                        max=3600,
+                        step=10,
+                        unit_of_measurement="seconds",
                         mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
