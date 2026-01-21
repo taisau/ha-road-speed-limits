@@ -99,12 +99,12 @@ class RoadSpeedLimitsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_LATITUDE_ENTITY): selector.EntitySelector(
                     selector.EntitySelectorConfig(
-                        domain=["sensor", "device_tracker", "person", "zone"]
+                        domain=["sensor", "input_number"]
                     )
                 ),
                 vol.Required(CONF_LONGITUDE_ENTITY): selector.EntitySelector(
                     selector.EntitySelectorConfig(
-                        domain=["sensor", "device_tracker", "person", "zone"]
+                        domain=["sensor", "input_number"]
                     )
                 ),
                 vol.Required(
@@ -210,7 +210,7 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                     default=get_config_value(self.config_entry, CONF_LATITUDE_ENTITY),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
-                        domain=["sensor", "device_tracker", "person", "zone"]
+                        domain=["sensor", "input_number"]
                     )
                 ),
                 vol.Required(
@@ -218,7 +218,7 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                     default=get_config_value(self.config_entry, CONF_LONGITUDE_ENTITY),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
-                        domain=["sensor", "device_tracker", "person", "zone"]
+                        domain=["sensor", "input_number"]
                     )
                 ),
                 vol.Required(
