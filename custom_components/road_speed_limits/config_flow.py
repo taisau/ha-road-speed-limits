@@ -12,20 +12,18 @@ from .const import (
     CONF_DATA_SOURCE,
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
+    CONF_MIN_UPDATE_DISTANCE,
     CONF_SPEED_ENTITY,
     CONF_UNIT,
-    CONF_UPDATE_INTERVAL,
     DATA_SOURCE_HERE,
     DATA_SOURCE_NAMES,
     DATA_SOURCE_OSM,
     DATA_SOURCE_TOMTOM,
     DEFAULT_DATA_SOURCE,
+    DEFAULT_MIN_UPDATE_DISTANCE,
     DEFAULT_SPEED_ENTITY,
     DEFAULT_UNIT,
-    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    HERE_API_KEY_NAME,
-    TOMTOM_API_KEY_NAME,
     UNIT_KMH,
     UNIT_MPH,
     UNIT_NAMES,
@@ -144,14 +142,14 @@ class RoadSpeedLimitsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 ),
                 vol.Required(
-                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
+                    CONF_MIN_UPDATE_DISTANCE, default=DEFAULT_MIN_UPDATE_DISTANCE
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=1,
-                        max=60,
+                        max=1000,
                         step=1,
-                        unit_of_measurement="minutes",
-                        mode=selector.NumberSelectorMode.SLIDER,
+                        unit_of_measurement="meters",
+                        mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
                 vol.Optional(
@@ -266,17 +264,17 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                     )
                 ),
                 vol.Required(
-                    CONF_UPDATE_INTERVAL,
+                    CONF_MIN_UPDATE_DISTANCE,
                     default=get_config_value(
-                        self.config_entry, CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                        self.config_entry, CONF_MIN_UPDATE_DISTANCE, DEFAULT_MIN_UPDATE_DISTANCE
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=1,
-                        max=60,
+                        max=1000,
                         step=1,
-                        unit_of_measurement="minutes",
-                        mode=selector.NumberSelectorMode.SLIDER,
+                        unit_of_measurement="meters",
+                        mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
                 vol.Optional(

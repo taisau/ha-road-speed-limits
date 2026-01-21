@@ -3,8 +3,10 @@ import asyncio
 from datetime import timedelta
 import logging
 import time
+import math
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, Event, callback
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -13,12 +15,11 @@ from .const import (
     DATA_SOURCE_OSM,
     DATA_SOURCE_TOMTOM,
     DEFAULT_UNIT,
-    DEFAULT_UPDATE_INTERVAL,
+    DEFAULT_MIN_UPDATE_DISTANCE,
     DOMAIN,
     SpeedLimitData,
-    UPDATE_INTERVAL,
 )
-from .helpers import convert_speed
+from .helpers import convert_speed, get_coordinate_from_entity, validate_coordinates
 from .providers import (
     BaseSpeedLimitProvider,
     HERESpeedLimitProvider,
@@ -27,6 +28,34 @@ from .providers import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate Haversine distance in meters between two points.
+
+    Args:
+        lat1: Latitude of first point
+        lon1: Longitude of first point
+        lat2: Latitude of second point
+        lon2: Longitude of second point
+
+    Returns:
+        Distance in meters
+    """
+    # Earth radius in meters
+    R = 6371000
+
+    # Convert to radians
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+
+    # Haversine formula
+    a = math.sin(delta_lat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c
 
 
 class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
@@ -39,28 +68,36 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         longitude: float,
         data_source: str = DATA_SOURCE_OSM,
         unit_preference: str = DEFAULT_UNIT,
-        update_interval: timedelta | None = None,
+        min_update_distance: int = DEFAULT_MIN_UPDATE_DISTANCE,
         speed_entity_id: str | None = None,
         tomtom_api_key: str | None = None,
         here_api_key: str | None = None,
     ) -> None:
         """Initialize the coordinator."""
-        if update_interval is None:
-            update_interval = timedelta(minutes=DEFAULT_UPDATE_INTERVAL)
-
+        # Disable automatic polling by setting update_interval to None
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=update_interval,
+            update_interval=None,
         )
         self.latitude = latitude
         self.longitude = longitude
+        
+        # Track last API fetch location to calculate distance
+        self._last_api_latitude = latitude
+        self._last_api_longitude = longitude
+
         self.data_source = data_source
         self.unit_preference = unit_preference
+        self.min_update_distance = min_update_distance
         self.fallback_active = False
         self.active_provider_name = None
         self.speed_entity_id = speed_entity_id
+        
+        self.lat_entity_id = None
+        self.lon_entity_id = None
+        self._unsub_listeners = []
 
         # Initialize cache for location-based data
         # Cache is only used when speed < 10 mph to avoid stale data at highway speeds
@@ -80,6 +117,96 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         # Add HERE if key is present
         if here_api_key:
             self.providers[DATA_SOURCE_HERE] = HERESpeedLimitProvider(here_api_key)
+
+    def setup_subscriptions(self, lat_entity_id: str, lon_entity_id: str) -> None:
+        """Set up event listeners for coordinate and speed entities."""
+        self.lat_entity_id = lat_entity_id
+        self.lon_entity_id = lon_entity_id
+        
+        # Unsubscribe from previous listeners if any
+        for unsub in self._unsub_listeners:
+            unsub()
+        self._unsub_listeners.clear()
+
+        # Track latitude changes
+        self._unsub_listeners.append(
+            async_track_state_change_event(
+                self.hass, [lat_entity_id], self._on_location_change
+            )
+        )
+
+        # Track longitude changes
+        self._unsub_listeners.append(
+            async_track_state_change_event(
+                self.hass, [lon_entity_id], self._on_location_change
+            )
+        )
+
+        # Track speed changes
+        if self.speed_entity_id:
+            self._unsub_listeners.append(
+                async_track_state_change_event(
+                    self.hass, [self.speed_entity_id], self._on_speed_change
+                )
+            )
+            
+        _LOGGER.debug(
+            "Subscribed to updates from lat=%s, lon=%s, speed=%s", 
+            lat_entity_id, 
+            lon_entity_id, 
+            self.speed_entity_id
+        )
+
+    @callback
+    def _on_location_change(self, event: Event) -> None:
+        """Handle location entity state changes."""
+        # Get current state of both entities
+        lat_state = self.hass.states.get(self.lat_entity_id)
+        lon_state = self.hass.states.get(self.lon_entity_id)
+
+        # Extract coordinates
+        new_lat = get_coordinate_from_entity(lat_state, "latitude")
+        new_lon = get_coordinate_from_entity(lon_state, "longitude")
+
+        # Validate coordinates
+        if not validate_coordinates(new_lat, new_lon):
+            return
+
+        # Calculate distance moved since last API update
+        distance = _calculate_distance(
+            self._last_api_latitude, 
+            self._last_api_longitude, 
+            new_lat, 
+            new_lon
+        )
+
+        # Check if moved enough to trigger update
+        if distance >= self.min_update_distance:
+            _LOGGER.debug(
+                "Moved %.1f meters (>= %s), triggering update", 
+                distance, 
+                self.min_update_distance
+            )
+            self.latitude = new_lat
+            self.longitude = new_lon
+            # This triggers _async_update_data
+            self.hass.async_create_task(self.async_request_refresh())
+        else:
+            # Update internal coordinates but don't trigger refresh yet
+            self.latitude = new_lat
+            self.longitude = new_lon
+
+    @callback
+    def _on_speed_change(self, event: Event) -> None:
+        """Handle speed entity state changes."""
+        # We generally don't trigger updates purely on speed change,
+        # unless we want to invalidate cache or something.
+        # For now, we just log it or use it to decide if we should force an update 
+        # (e.g. if we were stationary and now moving fast).
+        
+        # Optimization: If we just started moving, maybe trigger a refresh if the last one was cached?
+        # But _async_update_data checks current speed anyway.
+        pass
 
     def _get_cache_key(self, lat: float, lon: float) -> str:
         """Generate cache key from rounded coordinates.
@@ -130,6 +257,10 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         Returns:
             Dictionary mapping provider names to their data
         """
+        # Update last API location tracking
+        self._last_api_latitude = self.latitude
+        self._last_api_longitude = self.longitude
+
         # Check cache only if speed is below threshold (< 10 mph)
         # This prevents using stale cached data when moving at speed
         use_cache = True
@@ -262,8 +393,3 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
             data["unit"] = self.unit_preference
 
         return data
-
-    def update_location(self, latitude: float, longitude: float) -> None:
-        """Update the coordinates to search."""
-        self.latitude = latitude
-        self.longitude = longitude

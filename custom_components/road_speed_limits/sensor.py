@@ -1,11 +1,11 @@
 """Sensor platform for Road Speed Limits integration."""
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -23,31 +23,10 @@ from .const import (
     DATA_SOURCE_HERE,
     DEFAULT_NAME,
     DOMAIN,
-    SPEED_INTERVAL_THRESHOLDS,
 )
 from .coordinator import RoadSpeedLimitsCoordinator
-from .helpers import get_coordinate_from_entity, validate_coordinates
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def calculate_interval_from_speed(speed_kmh: float) -> int:
-    """Calculate update interval in seconds based on vehicle speed.
-
-    Args:
-        speed_kmh: Vehicle speed in km/h
-
-    Returns:
-        Update interval in seconds based on speed thresholds
-    """
-    # Find the appropriate interval based on speed
-    # Thresholds are in ascending order, so we check from highest to lowest
-    for threshold_speed, interval_seconds in reversed(SPEED_INTERVAL_THRESHOLDS):
-        if speed_kmh >= threshold_speed:
-            return interval_seconds
-
-    # Default to the lowest threshold if somehow speed is negative
-    return SPEED_INTERVAL_THRESHOLDS[0][1]
 
 
 async def async_setup_entry(
@@ -114,7 +93,6 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
         self._lon_entity_id = lon_entity_id
         self._speed_entity_id = speed_entity_id
         self._attr_icon = "mdi:speedometer"
-        self._last_interval_minutes = None  # Track last interval to avoid excessive logging
 
     @property
     def native_value(self) -> int | None:
@@ -156,75 +134,6 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
                 attributes[ATTR_ROAD_NAME] = road_name
 
         return attributes
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        # Update location if entities changed
-        lat_state = self.hass.states.get(self._lat_entity_id)
-        lon_state = self.hass.states.get(self._lon_entity_id)
-
-        if lat_state and lon_state:
-            # Extract coordinates (supports both attributes and state)
-            new_lat = get_coordinate_from_entity(lat_state, "latitude")
-            new_lon = get_coordinate_from_entity(lon_state, "longitude")
-
-            # Validate and update if coordinates are valid and changed
-            if validate_coordinates(new_lat, new_lon):
-                if (
-                    new_lat != self.coordinator.latitude
-                    or new_lon != self.coordinator.longitude
-                ):
-                    self.coordinator.update_location(new_lat, new_lon)
-                    _LOGGER.debug("Updated location to %s, %s", new_lat, new_lon)
-            else:
-                _LOGGER.debug(
-                    "Invalid coordinate values from entities: lat=%s, lon=%s",
-                    new_lat,
-                    new_lon,
-                )
-
-        # Dynamic interval adjustment based on speed (if speed entity configured)
-        if self._speed_entity_id:
-            speed_state = self.hass.states.get(self._speed_entity_id)
-            if speed_state and speed_state.state not in ("unavailable", "unknown"):
-                try:
-                    # Get speed value (assume it's in km/h)
-                    speed_kmh = float(speed_state.state)
-
-                    # Calculate appropriate interval based on speed (returns seconds)
-                    new_interval_seconds = calculate_interval_from_speed(speed_kmh)
-
-                    # Get current interval in seconds
-                    current_interval_seconds = int(self.coordinator.update_interval.total_seconds())
-
-                    # Only update if interval has changed significantly (avoid thrashing)
-                    if abs(current_interval_seconds - new_interval_seconds) >= 1:
-                        self.coordinator.update_interval = timedelta(seconds=new_interval_seconds)
-
-                        # Log only if interval actually changed from last logged value
-                        if self._last_interval_minutes != new_interval_seconds:
-                            # Format interval nicely for logging
-                            if new_interval_seconds >= 60:
-                                interval_display = f"{new_interval_seconds // 60} min"
-                            else:
-                                interval_display = f"{new_interval_seconds} sec"
-
-                            _LOGGER.info(
-                                "Adjusted update interval to %s based on speed %.1f km/h",
-                                interval_display,
-                                speed_kmh,
-                            )
-                            self._last_interval_minutes = new_interval_seconds
-
-                except (ValueError, TypeError) as err:
-                    _LOGGER.debug(
-                        "Could not parse speed from entity %s: %s",
-                        self._speed_entity_id,
-                        err,
-                    )
-
-        super()._handle_coordinator_update()
 
     @property
     def available(self) -> bool:

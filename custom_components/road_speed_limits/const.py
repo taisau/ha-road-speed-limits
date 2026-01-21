@@ -18,24 +18,12 @@ CONF_LATITUDE_ENTITY = "latitude_entity"
 CONF_LONGITUDE_ENTITY = "longitude_entity"
 CONF_DATA_SOURCE = "data_source"
 CONF_UNIT = "unit"
-CONF_UPDATE_INTERVAL = "update_interval"
 CONF_SPEED_ENTITY = "speed_entity"
-
-# Update interval
-UPDATE_INTERVAL = timedelta(minutes=5)
+CONF_MIN_UPDATE_DISTANCE = "min_update_distance"
 
 # Default values
-DEFAULT_UPDATE_INTERVAL = 5  # minutes
 DEFAULT_SPEED_ENTITY = "sensor.vehicle_speed"
-
-# Dynamic interval thresholds (speed in km/h -> interval in seconds)
-# Simplified 3-tier system for responsive updates
-# Speed values in km/h (for reference: 35 mph ≈ 56 km/h, 50 mph ≈ 80 km/h)
-SPEED_INTERVAL_THRESHOLDS = [
-    (0, 2),     # Below 35 mph (56 km/h): 2 seconds
-    (56, 5),    # 35-50 mph (56-80 km/h): 5 seconds
-    (80, 2),    # Above 50 mph (80+ km/h): 2 seconds (fast response for highway)
-]
+DEFAULT_MIN_UPDATE_DISTANCE = 20  # meters
 
 # Cache threshold (speed in km/h below which cache is used)
 # Set to 10 mph (16 km/h) - cache only helps when nearly stationary

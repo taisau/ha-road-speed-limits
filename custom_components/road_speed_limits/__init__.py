@@ -1,5 +1,4 @@
 """The Road Speed Limits integration."""
-from datetime import timedelta
 import logging
 import os
 
@@ -13,12 +12,12 @@ from .const import (
     CONF_DATA_SOURCE,
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
+    CONF_MIN_UPDATE_DISTANCE,
     CONF_SPEED_ENTITY,
     CONF_UNIT,
-    CONF_UPDATE_INTERVAL,
     DEFAULT_DATA_SOURCE,
+    DEFAULT_MIN_UPDATE_DISTANCE,
     DEFAULT_UNIT,
-    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     HERE_API_KEY_NAME,
     TOMTOM_API_KEY_NAME,
@@ -45,11 +44,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Get unit preference (default to mph)
     unit_preference = get_config_value(entry, CONF_UNIT, DEFAULT_UNIT)
 
-    # Get update interval preference (default to 5 minutes)
-    update_interval_minutes = get_config_value(
-        entry, CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+    # Get min update distance preference (default to 20m)
+    min_update_distance = get_config_value(
+        entry, CONF_MIN_UPDATE_DISTANCE, DEFAULT_MIN_UPDATE_DISTANCE
     )
-    update_interval = timedelta(minutes=update_interval_minutes)
 
     # Get initial coordinates from entities
     lat_state = hass.states.get(lat_entity_id)
@@ -106,11 +104,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         longitude,
         data_source=data_source,
         unit_preference=unit_preference,
-        update_interval=update_interval,
+        min_update_distance=min_update_distance,
         speed_entity_id=speed_entity_id,
         tomtom_api_key=tomtom_api_key,
         here_api_key=here_api_key,
     )
+    
+    # Start tracking entity changes
+    coordinator.setup_subscriptions(lat_entity_id, lon_entity_id)
 
     # Store coordinator for platforms to access
     hass.data.setdefault(DOMAIN, {})
