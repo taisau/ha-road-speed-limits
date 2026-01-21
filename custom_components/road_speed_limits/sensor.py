@@ -232,6 +232,11 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
         # Available if coordinator ran successfully at least once
         return self.coordinator.last_update_success
 
+    @property
+    def should_poll(self) -> bool:
+        """Disable default Home Assistant polling."""
+        return False
+
 
 class SourceSpecificSpeedLimitSensor(CoordinatorEntity, SensorEntity):
     """Representation of a specific source speed limit sensor (e.g., just TomTom)."""
@@ -292,3 +297,8 @@ class SourceSpecificSpeedLimitSensor(CoordinatorEntity, SensorEntity):
                     attributes[ATTR_ROAD_NAME] = road_name
 
         return attributes
+
+    @property
+    def should_poll(self) -> bool:
+        """Disable default Home Assistant polling."""
+        return False
