@@ -30,7 +30,7 @@ class RoadSpeedLimitsManualUpdateButton(CoordinatorEntity, ButtonEntity):
     ) -> None:
         """Initialize the button."""
         super().__init__(coordinator)
-        self._attr_name = "Update Speed Limit"
+        self._attr_name = "Road Speed Limit Manual Update"
         self._attr_unique_id = f"{entry.entry_id}_manual_update"
         self._attr_icon = "mdi:refresh"
 
