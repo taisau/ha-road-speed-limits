@@ -10,11 +10,13 @@ from homeassistant.util.yaml.loader import load_yaml
 
 from .const import (
     CONF_DATA_SOURCE,
+    CONF_HERE_API_KEY,
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
     CONF_MIN_UPDATE_DISTANCE,
     CONF_MIN_UPDATE_TIME,
     CONF_SPEED_ENTITY,
+    CONF_TOMTOM_API_KEY,
     CONF_UNIT,
     DEFAULT_DATA_SOURCE,
     DEFAULT_MIN_UPDATE_DISTANCE,
@@ -82,27 +84,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "Entities might not be ready. Retrying later."
         )
 
-    # Load API keys from secrets
-    tomtom_api_key = None
-    here_api_key = None
+    # Load API keys from config (preferred) or secrets
+    tomtom_api_key = get_config_value(entry, CONF_TOMTOM_API_KEY)
+    here_api_key = get_config_value(entry, CONF_HERE_API_KEY)
 
-    try:
-        secrets_path = hass.config.path("secrets.yaml")
-        if os.path.exists(secrets_path):
-            secrets = await hass.async_add_executor_job(load_yaml, secrets_path)
-            if secrets:
-                tomtom_api_key = secrets.get(TOMTOM_API_KEY_NAME)
-                here_api_key = secrets.get(HERE_API_KEY_NAME)
+    # If not in config, try secrets.yaml (for backward compatibility)
+    if not tomtom_api_key or not here_api_key:
+        try:
+            secrets_path = hass.config.path("secrets.yaml")
+            if os.path.exists(secrets_path):
+                secrets = await hass.async_add_executor_job(load_yaml, secrets_path)
+                if secrets:
+                    if not tomtom_api_key:
+                        tomtom_api_key = secrets.get(TOMTOM_API_KEY_NAME)
+                    if not here_api_key:
+                        here_api_key = secrets.get(HERE_API_KEY_NAME)
 
-            if not tomtom_api_key:
-                _LOGGER.debug("TomTom API key not found in secrets.yaml")
-            if not here_api_key:
-                _LOGGER.debug("HERE API key not found in secrets.yaml")
-        else:
-            _LOGGER.debug("secrets.yaml not found at %s", secrets_path)
+                if not tomtom_api_key:
+                    _LOGGER.debug("TomTom API key not found in config or secrets.yaml")
+                if not here_api_key:
+                    _LOGGER.debug("HERE API key not found in config or secrets.yaml")
+            else:
+                _LOGGER.debug("secrets.yaml not found at %s", secrets_path)
 
-    except Exception as err:
-        _LOGGER.warning("Could not load secrets.yaml: %s", err)
+        except Exception as err:
+            _LOGGER.warning("Could not load secrets.yaml: %s", err)
 
     # Create coordinator
     coordinator = RoadSpeedLimitsCoordinator(

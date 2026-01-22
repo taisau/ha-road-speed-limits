@@ -11,16 +11,20 @@
           "unit": "Unit",
           "min_update_distance": "Minimum Update Distance (meters)",
           "min_update_time": "Stop Polling After (seconds)",
-          "speed_entity": "Speed (Optional)"
+          "speed_entity": "Speed (Optional)",
+          "tomtom_api_key": "TomTom API Key (Optional)",
+          "here_api_key": "HERE API Key (Optional)"
         },
         "data_description": {
           "latitude_entity": "Select the sensor entity that provides latitude.",
           "longitude_entity": "Select the sensor entity that provides longitude.",
-          "data_source": "Choose the data source for speed limit information. OpenStreetMap is free. TomTom and HERE require API keys in secrets.yaml.",
+          "data_source": "Choose the data source for speed limit information. OpenStreetMap is free. TomTom and HERE require API keys.",
           "unit": "Select the unit for displaying speed limits.",
           "min_update_distance": "Distance moved required to wake up the polling loop.",
           "min_update_time": "If no movement occurs for this many seconds, polling will stop to save API calls.",
-          "speed_entity": "Entity providing vehicle speed in km/h. Used to bypass cache when moving fast."
+          "speed_entity": "Entity providing vehicle speed in km/h. Used to bypass cache when moving fast.",
+          "tomtom_api_key": "Enter your TomTom API key here if you selected TomTom as a data source or want to use it as a fallback.",
+          "here_api_key": "Enter your HERE API key here if you selected HERE Maps as a data source or want to use it as a fallback."
         }
       }
     },
@@ -44,7 +48,9 @@
           "unit": "Unit",
           "min_update_distance": "Minimum Update Distance (meters)",
           "min_update_time": "Stop Polling After (seconds)",
-          "speed_entity": "Speed (Optional)"
+          "speed_entity": "Speed (Optional)",
+          "tomtom_api_key": "TomTom API Key (Optional)",
+          "here_api_key": "HERE API Key (Optional)"
         },
         "data_description": {
           "latitude_entity": "Select the sensor entity that provides latitude.",
@@ -53,7 +59,9 @@
           "unit": "Select the unit for displaying speed limits.",
           "min_update_distance": "Distance moved required to wake up the polling loop.",
           "min_update_time": "If no movement occurs for this many seconds, polling will stop to save API calls.",
-          "speed_entity": "Entity providing vehicle speed in km/h. Used to bypass cache when moving fast."
+          "speed_entity": "Entity providing vehicle speed in km/h. Used to bypass cache when moving fast.",
+          "tomtom_api_key": "Enter your TomTom API key here.",
+          "here_api_key": "Enter your HERE API key here."
         }
       }
     },

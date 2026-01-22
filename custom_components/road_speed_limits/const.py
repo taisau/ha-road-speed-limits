@@ -21,6 +21,8 @@ CONF_UNIT = "unit"
 CONF_SPEED_ENTITY = "speed_entity"
 CONF_MIN_UPDATE_DISTANCE = "min_update_distance"
 CONF_MIN_UPDATE_TIME = "min_update_time"
+CONF_TOMTOM_API_KEY = "tomtom_api_key"
+CONF_HERE_API_KEY = "here_api_key"
 
 # Default values
 DEFAULT_SPEED_ENTITY = "sensor.vehicle_speed"

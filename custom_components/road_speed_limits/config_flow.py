@@ -10,11 +10,13 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_DATA_SOURCE,
+    CONF_HERE_API_KEY,
     CONF_LATITUDE_ENTITY,
     CONF_LONGITUDE_ENTITY,
     CONF_MIN_UPDATE_DISTANCE,
     CONF_MIN_UPDATE_TIME,
     CONF_SPEED_ENTITY,
+    CONF_TOMTOM_API_KEY,
     CONF_UNIT,
     DATA_SOURCE_HERE,
     DATA_SOURCE_NAMES,
@@ -165,6 +167,18 @@ class RoadSpeedLimitsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
+                vol.Optional(CONF_TOMTOM_API_KEY): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        autocomplete="off",
+                    )
+                ),
+                vol.Optional(CONF_HERE_API_KEY): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        autocomplete="off",
+                    )
+                ),
                 vol.Optional(
                     CONF_SPEED_ENTITY, default=DEFAULT_SPEED_ENTITY
                 ): selector.EntitySelector(
@@ -302,6 +316,28 @@ class RoadSpeedLimitsOptionsFlow(config_entries.OptionsFlow):
                         step=10,
                         unit_of_measurement="seconds",
                         mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Optional(
+                    CONF_TOMTOM_API_KEY,
+                    default=get_config_value(
+                        self.config_entry, CONF_TOMTOM_API_KEY, ""
+                    ),
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        autocomplete="off",
+                    )
+                ),
+                vol.Optional(
+                    CONF_HERE_API_KEY,
+                    default=get_config_value(
+                        self.config_entry, CONF_HERE_API_KEY, ""
+                    ),
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        autocomplete="off",
                     )
                 ),
                 vol.Optional(
