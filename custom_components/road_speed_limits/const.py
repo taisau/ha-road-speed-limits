@@ -53,7 +53,7 @@ OSM_SEARCH_RADIUS = 50  # meters (reduced for better accuracy)
 TOMTOM_API_URL = "https://api.tomtom.com/search/2/reverseGeocode"
 
 # HERE API
-HERE_API_URL = "https://data.traffic.hereapi.com/v7/flow"
+HERE_API_URL = "https://revgeocode.search.hereapi.com/v1/revgeocode"
 
 # Sensor attributes
 ATTR_LATITUDE = "latitude"

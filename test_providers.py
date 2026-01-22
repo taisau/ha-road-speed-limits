@@ -37,7 +37,8 @@ def test_osm(lat, lon):
                     tags = el.get("tags", {})
                     maxspeed = tags.get("maxspeed")
                     name = tags.get("name", "Unknown Road")
-                    print(f"  {i+1}. {name}: {maxspeed}")
+                    print(f"  {i+1}. Road Name: {name}")
+                    print(f"     Max Speed: {maxspeed}")
             else:
                 print("No roads with 'maxspeed' tag found within 50m.")
                 
@@ -53,24 +54,39 @@ def test_osm(lat, lon):
 
 def test_tomtom(api_key, lat, lon):
     print(f"\n--- Testing TomTom (Lat: {lat}, Lon: {lon}) ---")
+    # Use Search API (Reverse Geocoding) instead of Traffic API
+    base_url = "https://api.tomtom.com/search/2/reverseGeocode"
+    url = f"{base_url}/{lat},{lon}.json"
+    
     params = {
-        "point": f"{lat},{lon}",
         "key": api_key,
-        "unit": "MPH",
+        "returnSpeedLimit": "true",
+        "radius": 50
     }
-    url = f"{TOMTOM_API_URL}?{urllib.parse.urlencode(params)}"
+    
+    request_url = f"{url}?{urllib.parse.urlencode(params)}"
     
     try:
-        with urllib.request.urlopen(url, timeout=10) as response:
+        with urllib.request.urlopen(request_url, timeout=10) as response:
             data = json.loads(response.read().decode())
             print("Status: Success (200)")
-            # Parse like the provider
+            # Parse like the updated provider
             try:
-                flow_data = data.get("flowSegmentData", {})
-                speed_limit = flow_data.get("speedLimit")
-                road_name = flow_data.get("frc")
-                print(f"Speed Limit: {speed_limit}")
-                print(f"Road Class: {road_name}")
+                addresses = data.get("addresses", [])
+                if addresses:
+                    match = addresses[0]
+                    address_data = match.get("address", {})
+                    speed_limit_str = address_data.get("speedLimit")
+                    
+                    road_name = address_data.get("street")
+                    if not road_name:
+                        road_name = ", ".join(address_data.get("routeNumbers", []))
+                        
+                    print(f"Road Name: {road_name}")
+                    print(f"Speed Limit (Raw): {speed_limit_str}")
+                else:
+                    print("No address found.")
+                    
                 print("\n--- Full TomTom Response ---")
                 print(json.dumps(data, indent=2))
             except Exception as e:
@@ -102,12 +118,22 @@ def test_here(api_key, lat, lon):
                 results = data.get("results", [])
                 if results:
                     first = results[0]
-                    flow = first.get("currentFlow", {})
-                    limit = flow.get("speedLimit")
+                    current_flow = first.get("currentFlow", {})
+                    
+                    # Simulate provider logic
+                    speed_limit = current_flow.get("speedLimit")
+                    fallback_used = False
+                    if speed_limit is None:
+                        speed_limit = current_flow.get("speed")
+                        fallback_used = True
+                        if speed_limit:
+                            speed_limit = round(speed_limit * 3.6) # Convert m/s to km/h
+                    
                     loc = first.get("location", {})
                     desc = loc.get("description")
-                    print(f"Speed Limit: {limit} km/h")
-                    print(f"Road: {desc}")
+                    
+                    print(f"Road Name: {desc}")
+                    print(f"Speed Limit: {speed_limit} km/h (Fallback used: {fallback_used})")
                 else:
                     print("No results found in area.")
                 print("\n--- Full HERE Response ---")

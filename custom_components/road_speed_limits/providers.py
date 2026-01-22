@@ -393,7 +393,7 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
     async def fetch_speed_limit(
         self, latitude: float, longitude: float
     ) -> SpeedLimitData:
-        """Query HERE Flow API for speed limit data."""
+        """Query HERE Geocoding & Search API v7 for speed limit data."""
         import aiohttp
         import async_timeout
 
@@ -401,9 +401,10 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
             raise ValueError("HERE API key not configured")
 
         params = {
-            "locationReferencing": "shape",
-            "in": f"circle:{latitude},{longitude};r=50",
+            "at": f"{latitude},{longitude}",
             "apiKey": self.api_key,
+            "showNavAttributes": "speedLimits",  # Request explicit speed limits
+            "lang": "en-US",
         }
 
         try:
@@ -424,10 +425,10 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
     def _parse_here_response(self, data: dict[str, Any]) -> SpeedLimitData:
         """Parse HERE response and extract speed limit."""
         try:
-            results = data.get("results", [])
+            items = data.get("items", [])
 
-            if not results:
-                _LOGGER.debug("No speed limit data found in HERE response")
+            if not items:
+                _LOGGER.debug("No address data found in HERE response")
                 return {
                     "speed_limit": None,
                     "road_name": None,
@@ -436,31 +437,47 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
                 }
 
             # Get first result
-            first_result = results[0]
-            current_flow = first_result.get("currentFlow", {})
-
-            # Get speed limit (in m/s in Traffic API v7)
-            # Try explicit speedLimit field first
-            speed_limit = current_flow.get("speedLimit")
+            first_item = items[0]
             
-            # Fallback to 'speed' if 'speedLimit' is missing.
-            # According to HERE docs, 'speed' is guaranteed not to exceed legal limit.
-            if speed_limit is None:
-                speed_limit = current_flow.get("speed")
+            # Extract road name
+            # HERE v7 returns 'title' (full address) and address components
+            address = first_item.get("address", {})
+            road_name = address.get("street")
+            if not road_name:
+                road_name = first_item.get("title")
 
-            # Convert m/s to km/h
-            if speed_limit is not None:
-                speed_limit = round(speed_limit * 3.6)
+            # Extract speed limit from navigationAttributes
+            nav_attrs = first_item.get("navigationAttributes", {})
+            speed_limits = nav_attrs.get("speedLimits", [])
+            
+            speed_val = None
+            unit = "km/h" # Default
 
-            # Get road name if available
-            location = first_result.get("location", {})
-            road_name = location.get("description")
+            if speed_limits:
+                # Use the first speed limit found (usually matched to the road)
+                # In complex scenarios there might be "to" and "from" directions,
+                # but for a point query, the first valid one is usually correct.
+                limit_data = speed_limits[0]
+                max_speed = limit_data.get("maxSpeed")
+                
+                # Check unit
+                # HERE returns 'mph' or 'km/h' in speedUnit
+                src_unit = limit_data.get("speedUnit", "km/h")
+                
+                if max_speed is not None:
+                    # Convert float to int if clean (e.g. 50.0 -> 50)
+                    try:
+                        speed_val = int(max_speed)
+                    except (ValueError, TypeError):
+                        speed_val = max_speed
+                    
+                    unit = "mph" if src_unit == "mph" else "km/h"
 
             return {
-                "speed_limit": speed_limit,
+                "speed_limit": speed_val,
                 "road_name": road_name,
-                "unit": "km/h",
-                "distance": 0.0,  # HERE returns area match
+                "unit": unit,
+                "distance": 0.0,
             }
         except (KeyError, TypeError, IndexError) as err:
             _LOGGER.warning("Could not parse HERE response: %s", err)
