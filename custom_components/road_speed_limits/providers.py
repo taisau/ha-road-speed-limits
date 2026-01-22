@@ -259,16 +259,16 @@ class OSMSpeedLimitProvider(BaseSpeedLimitProvider):
         try:
             # Check if unit is specified
             if "mph" in maxspeed:
-                speed = int(maxspeed.replace("mph", "").strip())
+                speed = int(round(float(maxspeed.replace("mph", "").strip())))
                 return speed, "mph"
             elif "km/h" in maxspeed or "kmh" in maxspeed:
-                speed = int(
+                speed = int(round(float(
                     maxspeed.replace("km/h", "").replace("kmh", "").strip()
-                )
+                )))
                 return speed, "km/h"
             else:
                 # No unit specified, assume user preference
-                speed = int(maxspeed)
+                speed = int(round(float(maxspeed)))
                 return speed, self.unit_preference
         except ValueError:
             _LOGGER.warning("Could not parse speed limit value: %s", maxspeed)
@@ -346,7 +346,7 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
                 upper_str = speed_limit_str.upper()
                 if "MPH" in upper_str:
                     try:
-                        speed_val = int(float(upper_str.replace("MPH", "").strip()))
+                        speed_val = int(round(float(upper_str.replace("MPH", "").strip())))
                         unit = "mph"
                     except ValueError:
                         pass
@@ -354,7 +354,7 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
                     try:
                         # Handle km/h, kmh, etc.
                         clean_str = upper_str.replace("KM/H", "").replace("KMH", "").strip()
-                        speed_val = int(float(clean_str))
+                        speed_val = int(round(float(clean_str)))
                         unit = "km/h"
                     except ValueError:
                         pass
@@ -465,11 +465,11 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
                 src_unit = limit_data.get("speedUnit", "km/h")
                 
                 if max_speed is not None:
-                    # Convert float to int if clean (e.g. 50.0 -> 50)
+                    # Convert float to int with rounding (e.g. 50.0 -> 50)
                     try:
-                        speed_val = int(max_speed)
+                        speed_val = int(round(float(max_speed)))
                     except (ValueError, TypeError):
-                        speed_val = max_speed
+                        speed_val = None
                     
                     unit = "mph" if src_unit == "mph" else "km/h"
 
