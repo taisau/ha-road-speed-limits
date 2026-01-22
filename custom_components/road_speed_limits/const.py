@@ -50,7 +50,7 @@ OSM_OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 OSM_SEARCH_RADIUS = 50  # meters (reduced for better accuracy)
 
 # TomTom API
-TOMTOM_API_URL = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
+TOMTOM_API_URL = "https://api.tomtom.com/search/2/reverseGeocode"
 
 # HERE API
 HERE_API_URL = "https://data.traffic.hereapi.com/v7/flow"

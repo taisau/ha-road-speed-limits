@@ -285,23 +285,26 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
     async def fetch_speed_limit(
         self, latitude: float, longitude: float
     ) -> SpeedLimitData:
-        """Query TomTom Traffic API for speed limit data."""
+        """Query TomTom Search API (Reverse Geocoding) for speed limit data."""
         import aiohttp
         import async_timeout
 
         if not self.api_key:
             raise ValueError("TomTom API key not configured")
 
+        # Construct URL: base_url/{lat},{lon}.json
+        url = f"{TOMTOM_API_URL}/{latitude},{longitude}.json"
+        
         params = {
-            "point": f"{latitude},{longitude}",
             "key": self.api_key,
-            "unit": "MPH",
+            "returnSpeedLimit": "true",
+            "radius": 50,
         }
 
         try:
             async with aiohttp.ClientSession() as session:
                 async with async_timeout.timeout(10):
-                    async with session.get(TOMTOM_API_URL, params=params) as response:
+                    async with session.get(url, params=params) as response:
                         if response.status == 403:
                             raise aiohttp.ClientError("TomTom API key is invalid or expired")
                         if response.status != 200:
@@ -316,31 +319,66 @@ class TomTomSpeedLimitProvider(BaseSpeedLimitProvider):
             raise
 
     def _parse_tomtom_response(self, data: dict[str, Any]) -> SpeedLimitData:
-        """Parse TomTom response and extract speed limit."""
+        """Parse TomTom Reverse Geocoding response."""
         try:
-            flow_data = data.get("flowSegmentData", {})
+            addresses = data.get("addresses", [])
+            
+            if not addresses:
+                return {
+                    "speed_limit": None,
+                    "road_name": None,
+                    "unit": "km/h",
+                    "distance": None,
+                }
 
-            # Get speed limit from response
-            speed_limit = flow_data.get("speedLimit")
+            # Get best match
+            match = addresses[0]
+            address_data = match.get("address", {})
+            
+            # Extract speed limit string (e.g. "50.00MPH" or "80.00km/h")
+            speed_limit_str = address_data.get("speedLimit")
+            
+            speed_val = None
+            unit = "km/h" # Default
+            
+            if speed_limit_str:
+                # Basic parsing
+                upper_str = speed_limit_str.upper()
+                if "MPH" in upper_str:
+                    try:
+                        speed_val = int(float(upper_str.replace("MPH", "").strip()))
+                        unit = "mph"
+                    except ValueError:
+                        pass
+                elif "KM" in upper_str:
+                    try:
+                        # Handle km/h, kmh, etc.
+                        clean_str = upper_str.replace("KM/H", "").replace("KMH", "").strip()
+                        speed_val = int(float(clean_str))
+                        unit = "km/h"
+                    except ValueError:
+                        pass
 
-            # Get road name if available
-            road_name = flow_data.get("frc")  # Functional Road Class
-            if road_name:
-                # Convert FRC to more readable format
-                road_name = f"Road Class {road_name}"
+            # Get road name
+            road_name = address_data.get("street")
+            if not road_name:
+                # Try route numbers if street name is missing
+                route_numbers = address_data.get("routeNumbers", [])
+                if route_numbers:
+                    road_name = ", ".join(route_numbers)
 
             return {
-                "speed_limit": speed_limit if speed_limit else None,
+                "speed_limit": speed_val,
                 "road_name": road_name,
-                "unit": "mph",
-                "distance": 0.0,  # TomTom returns single point match
+                "unit": unit,
+                "distance": 0.0,
             }
         except (KeyError, TypeError) as err:
             _LOGGER.warning("Could not parse TomTom response: %s", err)
             return {
                 "speed_limit": None,
                 "road_name": None,
-                "unit": "mph",
+                "unit": "km/h",
                 "distance": None,
             }
 
