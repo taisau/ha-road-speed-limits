@@ -49,7 +49,7 @@ After restart, proceed to the Configuration section below.
 
 ### API Keys Setup (Optional)
 
-If you want to use TomTom or HERE Maps as your data source, you need to configure API keys in your `secrets.yaml` file.
+If you want to use TomTom or HERE Maps as your data source, you will need to obtain API keys from their respective developer portals. You can then enter these keys directly in the integration's configuration or options menu.
 
 #### Getting API Keys
 
@@ -68,17 +68,6 @@ If you want to use TomTom or HERE Maps as your data source, you need to configur
 5. Copy your API key
 6. Free tier includes 250,000 requests per month
 
-#### Add API Keys to secrets.yaml
-
-Edit your `secrets.yaml` file (in your Home Assistant config directory) and add:
-
-```yaml
-tomtom_api_key: "your_tomtom_api_key_here"
-here_api_key: "your_here_api_key_here"
-```
-
-**Note**: Only add the keys for the services you plan to use. OpenStreetMap requires no API key.
-
 ### Integration Setup
 
 1. Go to **Settings** → **Devices & Services**
@@ -95,11 +84,12 @@ here_api_key: "your_here_api_key_here"
 
    - **Data Source**: Choose from:
      - **OpenStreetMap** (default, free, no API key required)
-     - **TomTom** (requires API key in secrets.yaml)
-     - **HERE Maps** (requires API key in secrets.yaml)
+     - **TomTom** (requires API key)
+     - **HERE Maps** (requires API key)
    - **Unit**: Choose your preferred unit:
      - **Kilometers per hour (km/h)**
      - **Miles per hour (mph)** (default)
+   - **API Keys**: Enter your TomTom or HERE API keys if you plan to use those services.
 6. Click **Submit**
 
 The integration will create a sensor entity named `sensor.road_speed_limit` that displays the current speed limit in your selected unit. Speed limits are automatically converted from the data source to your preferred unit.
@@ -216,7 +206,7 @@ TomTom's Traffic API provides commercial-grade speed limit data.
 - **Rate Limit**: 2,500 requests/day (free tier)
 - **Accuracy**: High-quality commercial data
 - **Best for**: Users needing reliable, up-to-date data with moderate usage
-- **Setup**: Requires API key in secrets.yaml
+- **Setup**: Requires API key in integration options
 
 ### HERE Maps
 
@@ -227,7 +217,7 @@ HERE's Flow API provides enterprise-grade traffic and speed limit data.
 - **Rate Limit**: 250,000 requests/month (free tier)
 - **Accuracy**: High-quality commercial data
 - **Best for**: Heavy users or applications requiring maximum reliability
-- **Setup**: Requires API key in secrets.yaml
+- **Setup**: Requires API key in integration options
 
 ### Comparison Table
 
@@ -294,14 +284,13 @@ If you get an error about invalid coordinates during setup:
 
 If you selected TomTom or HERE Maps but it's not working:
 
-1. Check that you added the correct API key to `secrets.yaml`:
-   - Key name must be exactly `tomtom_api_key` or `here_api_key`
-   - Ensure the key is quoted: `tomtom_api_key: "your_key_here"`
-2. Restart Home Assistant after adding API keys to secrets.yaml
-3. Check Home Assistant logs for authentication errors
-4. Verify your API key is valid on the provider's website
-5. Check if you've exceeded your rate limit
-6. The integration will automatically fall back to OpenStreetMap if the API key is invalid
+1. Check that you entered the correct API key in the integration configuration:
+   - Go to **Settings** → **Devices & Services**
+   - Click **Configure** on the Road Speed Limits integration
+   - Verify the keys in the **TomTom API Key** and **HERE API Key** fields
+2. Verify your API key is valid on the provider's website
+3. Check if you've exceeded your rate limit
+4. The integration will automatically fall back to OpenStreetMap if the API key is invalid
 
 ### Fallback Mode
 

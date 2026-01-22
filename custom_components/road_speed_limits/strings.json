@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Road Speed Limits",
-        "description": "Configure the Road Speed Limits integration. Provide separate sensors for Latitude and Longitude. API keys for TomTom and HERE Maps should be configured in secrets.yaml.",
+        "description": "Configure the Road Speed Limits integration. Provide separate sensors for Latitude and Longitude.",
         "data": {
           "latitude_entity": "Latitude",
           "longitude_entity": "Longitude",

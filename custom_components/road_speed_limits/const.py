@@ -51,11 +51,9 @@ OSM_SEARCH_RADIUS = 50  # meters (reduced for better accuracy)
 
 # TomTom API
 TOMTOM_API_URL = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
-TOMTOM_API_KEY_NAME = "tomtom_api_key"
 
 # HERE API
 HERE_API_URL = "https://data.traffic.hereapi.com/v7/flow"
-HERE_API_KEY_NAME = "here_api_key"
 
 # Sensor attributes
 ATTR_LATITUDE = "latitude"

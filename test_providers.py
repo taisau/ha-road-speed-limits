@@ -8,6 +8,48 @@ import sys
 # Constants from const.py
 TOMTOM_API_URL = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
 HERE_API_URL = "https://data.traffic.hereapi.com/v7/flow"
+OSM_OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+OSM_SEARCH_RADIUS = 50
+
+def test_osm(lat, lon):
+    print(f"\n--- Testing OpenStreetMap (Lat: {lat}, Lon: {lon}) ---")
+    query = f"""
+    [out:json];
+    (
+      way(around:{OSM_SEARCH_RADIUS},{lat},{lon})["maxspeed"];
+    );
+    out body;
+    """
+    
+    # URL encode the query
+    data = urllib.parse.urlencode({"data": query}).encode()
+    
+    try:
+        req = urllib.request.Request(OSM_OVERPASS_URL, data=data)
+        with urllib.request.urlopen(req, timeout=15) as response:
+            data = json.loads(response.read().decode())
+            print("Status: Success (200)")
+            
+            elements = data.get("elements", [])
+            if elements:
+                print(f"Found {len(elements)} road segments with maxspeed.")
+                for i, el in enumerate(elements[:3]): # Show first 3
+                    tags = el.get("tags", {})
+                    maxspeed = tags.get("maxspeed")
+                    name = tags.get("name", "Unknown Road")
+                    print(f"  {i+1}. {name}: {maxspeed}")
+            else:
+                print("No roads with 'maxspeed' tag found within 50m.")
+                
+            print("\n--- Full OSM Response (First 2 Elements) ---")
+            # Limit dump to first 2 elements to keep it readable but detailed
+            data["elements"] = data.get("elements", [])[:2] 
+            print(json.dumps(data, indent=2))
+            
+    except urllib.error.HTTPError as e:
+        print(f"HTTP Error: {e.code} - {e.reason}")
+    except Exception as e:
+        print(f"Error: {e}")
 
 def test_tomtom(api_key, lat, lon):
     print(f"\n--- Testing TomTom (Lat: {lat}, Lon: {lon}) ---")
@@ -29,7 +71,8 @@ def test_tomtom(api_key, lat, lon):
                 road_name = flow_data.get("frc")
                 print(f"Speed Limit: {speed_limit}")
                 print(f"Road Class: {road_name}")
-                print("Raw Data snippet:", str(data)[:200] + "...")
+                print("\n--- Full TomTom Response ---")
+                print(json.dumps(data, indent=2))
             except Exception as e:
                 print(f"Parsing Error: {e}")
                 print("Raw Data:", data)
@@ -67,7 +110,8 @@ def test_here(api_key, lat, lon):
                     print(f"Road: {desc}")
                 else:
                     print("No results found in area.")
-                print("Raw Data snippet:", str(data)[:200] + "...")
+                print("\n--- Full HERE Response ---")
+                print(json.dumps(data, indent=2))
             except Exception as e:
                 print(f"Parsing Error: {e}")
                 print("Raw Data:", data)
@@ -95,6 +139,9 @@ def main():
         lon = -73.9855
     else:
         lon = float(lon_str)
+
+    # Test OSM
+    test_osm(lat, lon)
 
     # Test HERE
     here_key = input("\nEnter HERE API Key (leave empty to skip): ").strip()

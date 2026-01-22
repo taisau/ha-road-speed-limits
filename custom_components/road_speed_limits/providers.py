@@ -401,15 +401,25 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
             first_result = results[0]
             current_flow = first_result.get("currentFlow", {})
 
-            # Get speed limit (in km/h)
+            # Get speed limit (in m/s in Traffic API v7)
+            # Try explicit speedLimit field first
             speed_limit = current_flow.get("speedLimit")
+            
+            # Fallback to 'speed' if 'speedLimit' is missing.
+            # According to HERE docs, 'speed' is guaranteed not to exceed legal limit.
+            if speed_limit is None:
+                speed_limit = current_flow.get("speed")
+
+            # Convert m/s to km/h
+            if speed_limit is not None:
+                speed_limit = round(speed_limit * 3.6)
 
             # Get road name if available
             location = first_result.get("location", {})
             road_name = location.get("description")
 
             return {
-                "speed_limit": speed_limit if speed_limit else None,
+                "speed_limit": speed_limit,
                 "road_name": road_name,
                 "unit": "km/h",
                 "distance": 0.0,  # HERE returns area match
