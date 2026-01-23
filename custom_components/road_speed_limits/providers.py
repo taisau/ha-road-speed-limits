@@ -404,6 +404,7 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
             "at": f"{latitude},{longitude}",
             "apiKey": self.api_key,
             "showNavAttributes": "speedLimits",  # Request explicit speed limits
+            "show": "tz",  # Request timezone info
             "lang": "en-US",
         }
 
@@ -446,6 +447,12 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
             if not road_name:
                 road_name = first_item.get("title")
 
+            # Extract timezone
+            timezone = None
+            tz_info = first_item.get("timeZone")
+            if tz_info:
+                timezone = tz_info.get("name")
+
             # Extract speed limit from navigationAttributes
             nav_attrs = first_item.get("navigationAttributes", {})
             speed_limits = nav_attrs.get("speedLimits", [])
@@ -478,6 +485,7 @@ class HERESpeedLimitProvider(BaseSpeedLimitProvider):
                 "road_name": road_name,
                 "unit": unit,
                 "distance": 0.0,
+                "timezone": timezone,
             }
         except (KeyError, TypeError, IndexError) as err:
             _LOGGER.warning("Could not parse HERE response: %s", err)

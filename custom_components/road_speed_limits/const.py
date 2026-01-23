@@ -9,6 +9,7 @@ class SpeedLimitData(TypedDict, total=False):
     road_name: str | None
     unit: str
     distance: float | None  # Distance in meters to the road
+    timezone: str | None
 
 
 DOMAIN = "road_speed_limits"

@@ -33,6 +33,7 @@ def test_osm(lat, lon):
                 print(f"Road Name: {tags.get('name', 'Unknown')}")
                 print(f"Raw Limit: {raw_limit}")
                 print(f"Sanitized Limit: {sanitized_limit}")
+                print(f"Timezone: {tags.get('timezone', 'Not found in tags')}")
             else:
                 print("No maxspeed found in OSM.")
     except Exception as e:
@@ -63,6 +64,7 @@ def test_here(api_key, lat, lon):
                 print(f"Road Name: {addr.get('street', match.get('title'))}")
                 print(f"Raw Limit: {raw_speed}")
                 print(f"Sanitized Limit: {sanitized_limit}")
+                print(f"Timezone: {match.get('timezone', 'Not found in match')}")
             else:
                 print("No HERE address found.")
     except Exception as e:
@@ -92,6 +94,7 @@ def test_tomtom(api_key, lat, lon):
                 print(f"Road Name: {road}")
                 print(f"Raw Limit: {raw_limit}")
                 print(f"Sanitized Limit: {sanitized_limit}")
+                print(f"Timezone: {match.get('address', {}).get('timeZone', 'Not found in address')}")
             else:
                 print("No TomTom address found.")
     except Exception as e:

@@ -47,12 +47,17 @@ async def async_setup_entry(
         RoadSpeedLimitSensor(coordinator, entry, lat_entity_id, lon_entity_id, speed_entity_id)
     )
 
-    # 2. Create the Road Name Sensor (New entity)
+    # 2. Create the Road Name Sensor
     entities.append(
         RoadNameSensor(coordinator, entry)
     )
 
-    # 3. Create specific sensors for each available provider
+    # 3. Create the Timezone Sensor
+    entities.append(
+        RoadTimezoneSensor(coordinator, entry)
+    )
+
+    # 4. Create specific sensors for each available provider
     # Always create OSM
     entities.append(
         SourceSpecificSpeedLimitSensor(
@@ -175,6 +180,51 @@ class RoadNameSensor(CoordinatorEntity, SensorEntity):
         data = self.coordinator.get_primary_data()
         if data:
             return data.get("road_name")
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes."""
+        attributes = {
+            ATTR_ACTIVE_PROVIDER: self.coordinator.active_provider_name,
+            ATTR_LAST_UPDATE: datetime.now().isoformat(),
+        }
+        return attributes
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
+    def should_poll(self) -> bool:
+        """Disable default Home Assistant polling."""
+        return False
+
+
+class RoadTimezoneSensor(CoordinatorEntity, SensorEntity):
+    """Representation of the Road Timezone sensor."""
+
+    def __init__(
+        self,
+        coordinator: RoadSpeedLimitsCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_name = "Road Speed Limits Timezone"
+        self._attr_unique_id = f"{entry.entry_id}_timezone"
+        self._attr_icon = "mdi:map-clock"
+        
+        # Suggested ID for HA
+        self._attr_suggested_object_id = "road_speed_limits_timezone"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the state of the sensor."""
+        data = self.coordinator.get_primary_data()
+        if data:
+            return data.get("timezone")
         return None
 
     @property
