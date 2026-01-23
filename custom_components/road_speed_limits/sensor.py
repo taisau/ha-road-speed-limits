@@ -223,8 +223,15 @@ class RoadTimezoneSensor(CoordinatorEntity, SensorEntity):
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
         data = self.coordinator.get_primary_data()
-        if data:
-            return data.get("timezone")
+        if data and data.get("timezone"):
+            iana_name = data.get("timezone")
+            try:
+                from zoneinfo import ZoneInfo
+                from datetime import datetime
+                # Convert IANA name to abbreviation (PST, PDT, etc.)
+                return datetime.now(ZoneInfo(iana_name)).strftime("%Z")
+            except Exception:
+                return iana_name
         return None
 
     @property
@@ -234,6 +241,11 @@ class RoadTimezoneSensor(CoordinatorEntity, SensorEntity):
             ATTR_ACTIVE_PROVIDER: self.coordinator.active_provider_name,
             ATTR_LAST_UPDATE: datetime.now().isoformat(),
         }
+        
+        data = self.coordinator.get_primary_data()
+        if data and data.get("timezone"):
+            attributes["iana_timezone"] = data.get("timezone")
+            
         return attributes
 
     @property
