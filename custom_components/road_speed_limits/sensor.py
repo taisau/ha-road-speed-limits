@@ -47,7 +47,12 @@ async def async_setup_entry(
         RoadSpeedLimitSensor(coordinator, entry, lat_entity_id, lon_entity_id, speed_entity_id)
     )
 
-    # 2. Create specific sensors for each available provider
+    # 2. Create the Road Name Sensor (New entity)
+    entities.append(
+        RoadNameSensor(coordinator, entry)
+    )
+
+    # 3. Create specific sensors for each available provider
     # Always create OSM
     entities.append(
         SourceSpecificSpeedLimitSensor(
@@ -139,6 +144,51 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         # Available if coordinator ran successfully at least once
+        return self.coordinator.last_update_success
+
+    @property
+    def should_poll(self) -> bool:
+        """Disable default Home Assistant polling."""
+        return False
+
+
+class RoadNameSensor(CoordinatorEntity, SensorEntity):
+    """Representation of the Road Name sensor."""
+
+    def __init__(
+        self,
+        coordinator: RoadSpeedLimitsCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_name = "Road Name"
+        self._attr_unique_id = f"{entry.entry_id}_road_name"
+        self._attr_icon = "mdi:road-variant"
+        
+        # Suggested ID for HA
+        self._attr_suggested_object_id = "road_name"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the state of the sensor."""
+        data = self.coordinator.get_primary_data()
+        if data:
+            return data.get("road_name")
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes."""
+        attributes = {
+            ATTR_ACTIVE_PROVIDER: self.coordinator.active_provider_name,
+            ATTR_LAST_UPDATE: datetime.now().isoformat(),
+        }
+        return attributes
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
         return self.coordinator.last_update_success
 
     @property
