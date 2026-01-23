@@ -172,7 +172,7 @@ class RoadNameSensor(CoordinatorEntity, SensorEntity):
         self._attr_icon = "mdi:road-variant"
         
         # Suggested ID for HA
-        self._attr_suggested_object_id = "road_name"
+        self._attr_suggested_object_id = "road_speed_limit_road_name"
 
     @property
     def native_value(self) -> str | None:
@@ -217,7 +217,7 @@ class RoadTimezoneSensor(CoordinatorEntity, SensorEntity):
         self._attr_icon = "mdi:map-clock"
         
         # Suggested ID for HA
-        self._attr_suggested_object_id = "road_speed_limits_timezone"
+        self._attr_suggested_object_id = "road_speed_limit_timezone"
 
     @property
     def native_value(self) -> str | None:
