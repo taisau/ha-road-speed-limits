@@ -23,8 +23,6 @@ from .const import (
     DEFAULT_MIN_UPDATE_TIME,
     DEFAULT_UNIT,
     DOMAIN,
-    HERE_API_KEY_NAME,
-    TOMTOM_API_KEY_NAME,
 )
 
 _LOGGER = logging.getLogger(__name__)
