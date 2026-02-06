@@ -127,10 +127,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register services
     async def async_refresh_service(call) -> None:
         """Handle the refresh service call."""
+        provider = call.data.get("provider")
         # Find all coordinators and refresh them
         for entry_id in hass.data[DOMAIN]:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
-            await coordinator.async_request_refresh()
+            if provider:
+                await coordinator.async_refresh_with_provider(provider)
+            else:
+                await coordinator.async_request_refresh()
 
     hass.services.async_register(DOMAIN, "refresh", async_refresh_service)
 

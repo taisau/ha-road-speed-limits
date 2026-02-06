@@ -1,2 +1,15 @@
 refresh:
-  description: "Manually refresh speed limit data from all configured providers."
+  description: "Manually refresh speed limit data from configured providers."
+  fields:
+    provider:
+      description: "Optional: Specific provider to refresh (osm, tomtom, or here). If omitted, uses the default configured source."
+      example: "here"
+      selector:
+        select:
+          options:
+            - label: "OpenStreetMap"
+              value: "osm"
+            - label: "TomTom"
+              value: "tomtom"
+            - label: "HERE Maps"
+              value: "here"

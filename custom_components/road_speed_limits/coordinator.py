@@ -249,6 +249,47 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         key = self._get_cache_key(lat, lon)
         self._cache[key] = (data, time.time())
 
+    async def async_refresh_with_provider(self, provider_key: str) -> None:
+        """Force a refresh using a specific provider."""
+        if provider_key not in self.providers:
+            _LOGGER.error("Provider %s not configured", provider_key)
+            return
+
+        _LOGGER.debug("Manual refresh requested for provider: %s", provider_key)
+        
+        try:
+            # Update tracking coordinates to current
+            self._last_api_latitude = self.latitude
+            self._last_api_longitude = self.longitude
+
+            # Fetch specifically from this provider
+            data = await self.hass.async_create_task(
+                self.providers[provider_key].fetch_speed_limit(
+                    self.latitude, self.longitude
+                )
+            )
+            
+            # Create a results dict for just this provider
+            results = self.data.copy() if self.data else {}
+            results[provider_key] = self._apply_unit_conversion(data)
+            
+            # Update coordinator state
+            self.data = results
+            self.last_update_success = True
+            self.active_provider_name = self.providers[provider_key].get_provider_name()
+            
+            # Update persistence
+            self.last_update_time = datetime.now().isoformat()
+            self.hass.async_create_task(self.async_save_cache())
+            
+            # Clear local cache for this location to ensure sensors update
+            self._set_cached_data(self.latitude, self.longitude, results)
+            
+            self.async_update_listeners()
+            
+        except Exception as err:
+            _LOGGER.error("Manual refresh for %s failed: %s", provider_key, err)
+
     async def _async_update_data(self) -> dict[str, SpeedLimitData]:
         """Fetch speed limit data."""
         # Update tracking

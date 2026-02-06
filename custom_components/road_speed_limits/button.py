@@ -17,7 +17,21 @@ async def async_setup_entry(
     """Set up the Road Speed Limits button."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    async_add_entities([RoadSpeedLimitsManualUpdateButton(coordinator, entry)])
+    buttons = [RoadSpeedLimitsManualUpdateButton(coordinator, entry)]
+    
+    # Add provider-specific buttons if keys are configured
+    from .const import DATA_SOURCE_HERE, DATA_SOURCE_TOMTOM, DATA_SOURCE_OSM
+    
+    if DATA_SOURCE_OSM in coordinator.providers:
+        buttons.append(RoadSpeedLimitsProviderRefreshButton(coordinator, entry, DATA_SOURCE_OSM, "OSM"))
+        
+    if DATA_SOURCE_TOMTOM in coordinator.providers:
+        buttons.append(RoadSpeedLimitsProviderRefreshButton(coordinator, entry, DATA_SOURCE_TOMTOM, "TomTom"))
+        
+    if DATA_SOURCE_HERE in coordinator.providers:
+        buttons.append(RoadSpeedLimitsProviderRefreshButton(coordinator, entry, DATA_SOURCE_HERE, "HERE"))
+
+    async_add_entities(buttons)
 
 
 class RoadSpeedLimitsManualUpdateButton(CoordinatorEntity, ButtonEntity):
@@ -37,3 +51,26 @@ class RoadSpeedLimitsManualUpdateButton(CoordinatorEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press."""
         await self.coordinator.async_request_refresh()
+
+
+class RoadSpeedLimitsProviderRefreshButton(CoordinatorEntity, ButtonEntity):
+    """Representation of a button to refresh a specific provider."""
+
+    def __init__(
+        self,
+        coordinator: RoadSpeedLimitsCoordinator,
+        entry: ConfigEntry,
+        provider_key: str,
+        provider_name: str,
+    ) -> None:
+        """Initialize the button."""
+        super().__init__(coordinator)
+        self.provider_key = provider_key
+        self._attr_name = f"Refresh {provider_name} Speed Limit"
+        self._attr_unique_id = f"{entry.entry_id}_refresh_{provider_key}"
+        self._attr_icon = "mdi:refresh-circle"
+        self._attr_entity_registry_enabled_default = False  # Keep UI clean by default
+
+    async def async_press(self) -> None:
+        """Handle the button press."""
+        await self.coordinator.async_refresh_with_provider(self.provider_key)
