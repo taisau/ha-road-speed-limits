@@ -132,7 +132,7 @@ class RoadSpeedLimitSensor(CoordinatorEntity, SensorEntity):
             ATTR_DATA_SOURCE: selected_source,
             ATTR_ACTIVE_PROVIDER: self.coordinator.active_provider_name,
             ATTR_FALLBACK_ACTIVE: self.coordinator.fallback_active,
-            ATTR_LAST_UPDATE: datetime.now().isoformat(),
+            ATTR_LAST_UPDATE: self.coordinator.last_update_time,
             ATTR_LATITUDE: self.coordinator.latitude,
             ATTR_LONGITUDE: self.coordinator.longitude,
         }
@@ -187,7 +187,7 @@ class RoadNameSensor(CoordinatorEntity, SensorEntity):
         """Return the state attributes."""
         attributes = {
             ATTR_ACTIVE_PROVIDER: self.coordinator.active_provider_name,
-            ATTR_LAST_UPDATE: datetime.now().isoformat(),
+            ATTR_LAST_UPDATE: self.coordinator.last_update_time,
         }
         return attributes
 
@@ -239,7 +239,7 @@ class RoadTimezoneSensor(CoordinatorEntity, SensorEntity):
         """Return the state attributes."""
         attributes = {
             ATTR_ACTIVE_PROVIDER: self.coordinator.active_provider_name,
-            ATTR_LAST_UPDATE: datetime.now().isoformat(),
+            ATTR_LAST_UPDATE: self.coordinator.last_update_time,
         }
         
         data = self.coordinator.get_primary_data()
@@ -307,7 +307,7 @@ class SourceSpecificSpeedLimitSensor(CoordinatorEntity, SensorEntity):
         """Return the state attributes."""
         attributes = {
             ATTR_DATA_SOURCE: DATA_SOURCE_NAMES.get(self.source_key, self.source_key),
-            ATTR_LAST_UPDATE: datetime.now().isoformat(),
+            ATTR_LAST_UPDATE: self.coordinator.last_update_time,
         }
 
         if self.coordinator.data:

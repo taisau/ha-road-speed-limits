@@ -13,6 +13,7 @@ class SpeedLimitData(TypedDict, total=False):
 
 
 DOMAIN = "road_speed_limits"
+STORAGE_VERSION = 1
 
 # Configuration keys
 CONF_LATITUDE_ENTITY = "latitude_entity"

@@ -59,3 +59,8 @@ Because this project is distributed via HACS, the following steps **MUST** be fo
 3.  **Push**: Push the commit to GitHub.
 4.  **Tag**: Create a git tag for the new version (e.g., `git tag v0.0.3`) and push it (`git push origin v0.0.3`).
 5.  **Release**: Create a formal GitHub release (e.g., `gh release create v0.0.3 --title "v0.0.3" --notes "..."`). HACS requires this formal release to reliably detect the update.
+
+## Memories
+- Always bump the version number in manifest.json before committing any changes to the ha-road-speed-limits project.
+- Always create and push a git tag matching the version number (e.g., 'v0.0.2') after bumping the version and committing, as HACS relies on these tags for updates.
+- Always create a formal GitHub release (using 'gh release create') after pushing a version tag, as HACS often requires a formal release object to reliably detect updates.

@@ -1,6 +1,6 @@
 """DataUpdateCoordinator for Road Speed Limits."""
 import asyncio
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 import time
 import math
@@ -8,6 +8,7 @@ import math
 from homeassistant.core import HomeAssistant, Event, callback
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.storage import Store
 
 from .const import (
     CACHE_SPEED_THRESHOLD,
@@ -18,6 +19,7 @@ from .const import (
     DEFAULT_MIN_UPDATE_DISTANCE,
     DEFAULT_MIN_UPDATE_TIME,
     DOMAIN,
+    STORAGE_VERSION,
     SpeedLimitData,
 )
 from .helpers import convert_speed, get_coordinate_from_entity, validate_coordinates
@@ -76,6 +78,10 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
         self.min_update_distance = min_update_distance
         self.min_update_time = min_update_time
         
+        # Persistence
+        self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}.cache")
+        self.last_update_time = None
+        
         # Polling state
         self.polling_active = False
         self._last_active_time = time.time()
@@ -128,6 +134,24 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
                     self.hass, [self.speed_entity_id], self._on_speed_change
                 )
             )
+
+    async def async_load_cache(self) -> None:
+        """Load cached data from storage."""
+        if cached_data := await self._store.async_load():
+            _LOGGER.debug("Loaded cached data from storage")
+            self.data = cached_data.get("data")
+            self.last_update_time = cached_data.get("last_update_time")
+            # If we have data, mark last update as success to make entities available
+            if self.data:
+                self.last_update_success = True
+
+    async def async_save_cache(self) -> None:
+        """Save current data to storage."""
+        if self.data:
+            await self._store.async_save({
+                "data": self.data,
+                "last_update_time": self.last_update_time,
+            })
 
     def _start_polling(self) -> None:
         """Start the high-frequency polling loop."""
@@ -264,6 +288,11 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
             self.fallback_active = False
             self.active_provider_name = self.providers[self.data_source].get_provider_name()
             self._set_cached_data(self.latitude, self.longitude, results)
+            
+            # Update persistence
+            self.last_update_time = datetime.now().isoformat()
+            self.hass.async_create_task(self.async_save_cache())
+            
             return results
 
         self.fallback_active = True
@@ -284,6 +313,11 @@ class RoadSpeedLimitsCoordinator(DataUpdateCoordinator):
 
                 if results[fallback_source] and results[fallback_source].get("speed_limit") is not None:
                     self.active_provider_name = self.providers[fallback_source].get_provider_name()
+                    
+                    # Update persistence
+                    self.last_update_time = datetime.now().isoformat()
+                    self.hass.async_create_task(self.async_save_cache())
+                    
                     break
             except Exception:
                 results[fallback_source] = None

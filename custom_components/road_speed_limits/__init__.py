@@ -103,6 +103,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Start tracking entity changes
     coordinator.setup_subscriptions(lat_entity_id, lon_entity_id)
 
+    # Load cache from storage before first refresh
+    await coordinator.async_load_cache()
+
     # Store coordinator for platforms to access
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
